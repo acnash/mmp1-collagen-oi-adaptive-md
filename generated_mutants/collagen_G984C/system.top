@@ -1,0 +1,20 @@
+#include "forcefield.itp"
+
+#include "topol_MMP1_active.itp"
+;#include "posre_MMP1_active.itp"
+
+#include "collagen_G984C.itp"
+#include "collagen.itp"
+;#include "posre_collagen.itp"
+
+#include "tip3p.itp"
+#include "ions.itp"
+[ system ]
+Protein in water
+
+[ molecules ]
+MMP1_active       1
+collagen_G984C   1
+collagen          2
+SOL               18859
+CL                10
