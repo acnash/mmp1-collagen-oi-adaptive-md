@@ -37,6 +37,7 @@ Typical resume command:
 """
 
 import argparse
+import csv
 import json
 import math
 import os
@@ -118,9 +119,13 @@ DEFAULT_CONFIG = {
     "checkpoint_interval_ps": 200.0,
     "completion_fraction": 0.95,
     "workers_per_generation": 10,
-    "top_frames_to_keep": 2,
+    "top_frames_to_keep": 1,
+    "velocity_scale_min": 0.5,
+    "velocity_scale_max": 2.0,
+    "controller_progress_interval_s": 60.0,
     "platform": "CPU",
     "minimize_max_iterations": 500,
+    "minimize_parent_seeded_generations": False,
     "native_retry_limit": 1,
     "catastrophic_failure_fraction": 0.20,
     "slurm_walltime_buffer_min": 20.0,
@@ -188,6 +193,10 @@ def box_vectors_to_numpy_nm(box_vectors):
     return np.array([[v.x, v.y, v.z] for v in box_vectors.value_in_unit(unit.nanometer)], dtype=float)
 
 
+def velocities_to_numpy_nm_per_ps(velocities):
+    return np.array([[v.x, v.y, v.z] for v in velocities.value_in_unit(unit.nanometer / unit.picosecond)], dtype=float)
+
+
 def numpy_to_positions(array_nm):
     return unit.Quantity(np.asarray(array_nm, dtype=float), unit.nanometer)
 
@@ -198,15 +207,62 @@ def numpy_to_box_vectors(array_nm):
     return tuple(Vec3(*array_nm[i]) * unit.nanometer for i in range(3))
 
 
-def save_state_npz(path: Path, positions, box_vectors) -> None:
+def numpy_to_velocities(array_nm_per_ps):
+    return unit.Quantity(np.asarray(array_nm_per_ps, dtype=float), unit.nanometer / unit.picosecond)
+
+
+def scalar_quantity_to_float(value, target_unit) -> Optional[float]:
+    if value is None:
+        return None
+    try:
+        return float(value.value_in_unit(target_unit))
+    except AttributeError:
+        try:
+            return float(value)
+        except Exception:
+            return None
+
+
+def save_state_npz(
+    path: Path,
+    positions,
+    box_vectors,
+    velocities=None,
+    kinetic_energy=None,
+    potential_energy=None,
+    time_ps: Optional[float] = None,
+    step: Optional[int] = None,
+    opening_score_nm: Optional[float] = None,
+) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
     pos_nm = positions_to_numpy_nm(positions)
     box_nm = box_vectors_to_numpy_nm(box_vectors)
+    payload = {
+        "positions_nm": pos_nm,
+        "box_vectors_nm": box_nm,
+    }
+
+    if velocities is not None:
+        payload["velocities_nm_per_ps"] = velocities_to_numpy_nm_per_ps(velocities)
+
+    kinetic_energy_kj_mol = scalar_quantity_to_float(kinetic_energy, unit.kilojoule_per_mole)
+    potential_energy_kj_mol = scalar_quantity_to_float(potential_energy, unit.kilojoule_per_mole)
+
+    if kinetic_energy_kj_mol is not None:
+        payload["kinetic_energy_kj_mol"] = np.array(kinetic_energy_kj_mol, dtype=float)
+    if potential_energy_kj_mol is not None:
+        payload["potential_energy_kj_mol"] = np.array(potential_energy_kj_mol, dtype=float)
+    if time_ps is not None:
+        payload["time_ps"] = np.array(float(time_ps), dtype=float)
+    if step is not None:
+        payload["step"] = np.array(int(step), dtype=np.int64)
+    if opening_score_nm is not None:
+        payload["opening_score_nm"] = np.array(float(opening_score_nm), dtype=float)
 
     tmp = path.with_name(f"{path.stem}.tmp.{os.getpid()}.{time.time_ns()}.npz")
-    np.savez_compressed(tmp, positions_nm=pos_nm, box_vectors_nm=box_nm)
+    np.savez_compressed(tmp, **payload)
 
     if not tmp.exists():
         alt = Path(str(tmp) + ".npz")
@@ -216,9 +272,26 @@ def save_state_npz(path: Path, positions, box_vectors) -> None:
     tmp.replace(path)
 
 
-def load_state_npz(path: Path):
+def load_state_npz_data(path: Path) -> dict:
     data = np.load(path)
-    return numpy_to_positions(data["positions_nm"]), numpy_to_box_vectors(data["box_vectors_nm"])
+    out = {
+        "positions": numpy_to_positions(data["positions_nm"]),
+        "box_vectors": numpy_to_box_vectors(data["box_vectors_nm"]),
+        "has_velocities": "velocities_nm_per_ps" in data.files,
+    }
+    if "velocities_nm_per_ps" in data.files:
+        out["velocities"] = numpy_to_velocities(data["velocities_nm_per_ps"])
+    for key in ["kinetic_energy_kj_mol", "potential_energy_kj_mol", "time_ps", "opening_score_nm"]:
+        if key in data.files:
+            out[key] = float(np.asarray(data[key]))
+    if "step" in data.files:
+        out["step"] = int(np.asarray(data["step"]))
+    return out
+
+
+def load_state_npz(path: Path):
+    state = load_state_npz_data(path)
+    return state["positions"], state["box_vectors"]
 
 
 def minimum_image_displacement_nm(delta_nm: np.ndarray, box_vectors_nm: np.ndarray) -> np.ndarray:
@@ -327,6 +400,7 @@ def normalize_system_config(input_dir: Path, config: dict) -> dict:
         config["run_label"] = variant_meta["label"]
     if config.get("input_gro") in {None, "", "auto"}:
         config["input_gro"] = auto_detect_gro_file(input_dir)
+    config["top_frames_to_keep"] = 1
 
     return config
 
@@ -525,7 +599,7 @@ class OpeningScoreReporter:
 
     def describeNextReport(self, simulation):
         steps = self.reportInterval - simulation.currentStep % self.reportInterval
-        return (steps, True, False, False, True, None)
+        return (steps, True, True, False, True, None)
 
     def report(self, simulation, state):
         positions = state.getPositions()
@@ -541,7 +615,17 @@ class OpeningScoreReporter:
         if score_nm > self.best_score:
             self.best_score = score_nm
             self.best_step = simulation.currentStep
-            save_state_npz(self.best_npz_path, positions, box_vectors)
+            save_state_npz(
+                self.best_npz_path,
+                positions,
+                box_vectors,
+                velocities=state.getVelocities(),
+                kinetic_energy=state.getKineticEnergy(),
+                potential_energy=state.getPotentialEnergy(),
+                time_ps=time_ps,
+                step=simulation.currentStep,
+                opening_score_nm=score_nm,
+            )
             write_gro_like_snapshot(self.best_gro_path, self.topology, positions, box_vectors, title=f"Best PBC-corrected opening frame step {simulation.currentStep}")
 
     def close(self):
@@ -592,6 +676,100 @@ def create_simulation(topology, system, config: dict, seed: int, add_barostat: b
     return Simulation(topology, system, integrator, platform, properties)
 
 
+def finite_positive(value: Optional[float]) -> bool:
+    return value is not None and math.isfinite(float(value)) and float(value) > 0.0
+
+
+def record_velocity_diagnostics(worker_dir: Path, diagnostics: dict) -> None:
+    meta = read_worker_meta(worker_dir)
+    meta.setdefault("velocity_initialisation", []).append(diagnostics)
+    write_worker_meta(worker_dir, meta)
+
+
+def initialise_velocities_with_parent_ke(
+    simulation: Simulation,
+    temperature_k: float,
+    seed: int,
+    parent_state: Optional[dict],
+    config: dict,
+    worker_dir: Path,
+    stage: str,
+) -> dict:
+    diagnostics = {
+        "stage": stage,
+        "velocity_initialisation_method": "fresh_maxwell_boltzmann",
+        "seed": int(seed),
+        "temperature_k": float(temperature_k),
+    }
+
+    parent_ke = None if parent_state is None else parent_state.get("kinetic_energy_kj_mol")
+    if not finite_positive(parent_ke):
+        diagnostics["fallback_reason"] = "parent_kinetic_energy_missing_or_nonfinite"
+        simulation.context.setVelocitiesToTemperature(float(temperature_k) * unit.kelvin, int(seed))
+        record_velocity_diagnostics(worker_dir, diagnostics)
+        return diagnostics
+
+    max_draws = 3
+    child_ke = None
+    state_child = None
+    for draw_i in range(max_draws):
+        draw_seed = int(seed) + draw_i
+        simulation.context.setVelocitiesToTemperature(float(temperature_k) * unit.kelvin, draw_seed)
+        state_child = simulation.context.getState(getVelocities=True, getEnergy=True)
+        child_ke = state_child.getKineticEnergy().value_in_unit(unit.kilojoule_per_mole)
+        if finite_positive(child_ke):
+            diagnostics["draw_seed"] = draw_seed
+            break
+    else:
+        diagnostics["fallback_reason"] = "child_kinetic_energy_zero_or_nonfinite_after_redraws"
+        simulation.context.setVelocitiesToTemperature(float(temperature_k) * unit.kelvin, int(seed) + max_draws)
+        record_velocity_diagnostics(worker_dir, diagnostics)
+        return diagnostics
+
+    scale = math.sqrt(float(parent_ke) / float(child_ke))
+    diagnostics.update(
+        {
+            "velocity_initialisation_method": "kinetic_energy_matched_stochastic",
+            "parent_kinetic_energy_kj_mol": float(parent_ke),
+            "child_kinetic_energy_before_rescale_kj_mol": float(child_ke),
+            "velocity_scale_factor": float(scale),
+        }
+    )
+
+    min_scale = float(config.get("velocity_scale_min", 0.5))
+    max_scale = float(config.get("velocity_scale_max", 2.0))
+    if not math.isfinite(scale) or scale < min_scale or scale > max_scale:
+        diagnostics["velocity_initialisation_method"] = "fresh_maxwell_boltzmann"
+        diagnostics["fallback_reason"] = f"velocity_scale_factor_outside_bounds_{min_scale:g}_{max_scale:g}"
+        simulation.context.setVelocitiesToTemperature(float(temperature_k) * unit.kelvin, int(seed) + max_draws + 1)
+        record_velocity_diagnostics(worker_dir, diagnostics)
+        return diagnostics
+
+    velocities = state_child.getVelocities(asNumpy=True)
+    simulation.context.setVelocities(velocities * scale)
+    state_scaled = simulation.context.getState(getEnergy=True)
+    scaled_ke = state_scaled.getKineticEnergy().value_in_unit(unit.kilojoule_per_mole)
+    diagnostics["child_kinetic_energy_after_rescale_kj_mol"] = float(scaled_ke)
+
+    record_velocity_diagnostics(worker_dir, diagnostics)
+    return diagnostics
+
+
+def set_velocities_from_state_or_temperature(simulation: Simulation, loaded_state: dict, temperature_k: float, seed: int) -> dict:
+    diagnostics = {
+        "velocity_initialisation_method": "fresh_maxwell_boltzmann",
+        "seed": int(seed),
+        "temperature_k": float(temperature_k),
+    }
+    if loaded_state.get("has_velocities") and loaded_state.get("velocities") is not None:
+        simulation.context.setVelocities(loaded_state["velocities"])
+        diagnostics["velocity_initialisation_method"] = "loaded_from_npz"
+    else:
+        simulation.context.setVelocitiesToTemperature(float(temperature_k) * unit.kelvin, int(seed))
+        diagnostics["fallback_reason"] = "npz_velocities_missing"
+    return diagnostics
+
+
 def deterministic_seed(config: dict, generation_index: int, worker_index: int, attempt: int, salt: int = 0) -> int:
     master = int(config.get("master_seed", 90210))
     return int(master + generation_index * 100000 + worker_index * 1000 + attempt * 100 + salt)
@@ -620,6 +798,9 @@ def initialise_context(input_dir: str, overrides: dict) -> dict:
         "notes": [
             "Backwards-compatible adaptive OpenMM MMP1-collagen unwinding run.",
             "Opening score uses minimum-image PBC-corrected CA distances.",
+            "Adaptive seeding uses the single best-opening parent frame per generation by default.",
+            "Child workers use kinetic-energy-matched stochastic velocity reinitialisation when parent kinetic energy is available.",
+            "Generation 0 is minimized; parent-seeded generations skip minimization by default to preserve selected production-frame geometry.",
             "Manual mode runs one generation and stops.",
             "Auto mode runs until target_generation has completed.",
             "Periodic bonded forces are enabled for cyclic/periodic collagen topology.",
@@ -793,8 +974,11 @@ def get_start_state_pool(context: dict, generation_index: int) -> List[dict]:
     if not context.get("selected_frames"):
         raise RuntimeError(f"No selected frames are available for generation {generation_index}")
 
-    previous_selected = context["selected_frames"][-1]["frames"]
+    previous_selected = context["selected_frames"][-1]["frames"][: int(config.get("top_frames_to_keep", 1))]
     starts = []
+
+    if not previous_selected:
+        raise RuntimeError(f"No selected parent frames are available for generation {generation_index}")
 
     workers_per_source = int(config["workers_per_generation"]) // len(previous_selected)
     remainder = int(config["workers_per_generation"]) % len(previous_selected)
@@ -1042,6 +1226,37 @@ def launch_worker_subprocess(script_path: Path, run_dir: Path, generation_index:
     return proc
 
 
+def print_generation_progress(run_dir: Path, generation_index: int, config: dict, active: Dict[Path, subprocess.Popen]) -> None:
+    worker_dirs = existing_generation_worker_dirs(run_dir, generation_index)
+    successful = get_successful_worker_dirs(run_dir, generation_index, config)
+    archived = get_archived_failed_worker_dirs(run_dir, generation_index)
+    target = int(config["workers_per_generation"])
+    queued = 0
+    retryable = 0
+    running_meta = []
+
+    for worker_dir in worker_dirs:
+        meta = read_worker_meta(worker_dir)
+        status = meta.get("status", "unknown")
+        if status == "queued":
+            queued += 1
+        if status == "failed_retryable":
+            retryable += 1
+        if worker_dir.resolve() in active:
+            frac = worker_completion_fraction(worker_dir, config)
+            best = meta.get("best_score_angstrom")
+            best_text = "n/a" if best is None else f"{float(best):.3f} A"
+            running_meta.append(f"{worker_dir.name}:{status}:{frac * 100.0:.1f}%:best={best_text}")
+
+    active_text = ", ".join(running_meta) if running_meta else "none"
+    print(
+        f"[{now_iso()}] Generation {generation_index:03d} progress: "
+        f"{len(successful)}/{target} complete, {len(active)} active, {queued} queued, "
+        f"{retryable} retryable, {len(archived)} archived_failed. Active: {active_text}",
+        flush=True,
+    )
+
+
 def run_generation_controller(context: dict, args) -> dict:
     run_dir = Path(context["run_dir"])
     config = context["config"]
@@ -1064,12 +1279,18 @@ def run_generation_controller(context: dict, args) -> dict:
 
     active: Dict[Path, subprocess.Popen] = {}
     launch_cursor = 0
+    last_progress_print = 0.0
 
     while True:
         successful = get_successful_worker_dirs(run_dir, generation_index, config)
 
         if len(successful) >= int(config["workers_per_generation"]):
             break
+
+        now = time.time()
+        if now - last_progress_print >= float(config.get("controller_progress_interval_s", 60.0)):
+            print_generation_progress(run_dir, generation_index, config, active)
+            last_progress_print = now
 
         if should_stop_launching_for_walltime(config):
             if not active:
@@ -1167,6 +1388,13 @@ def finalize_generation(context: dict, generation_index: int) -> dict:
         best_score = meta.get("best_score_nm", None)
         if best_score is None:
             best_score = read_best_score_from_csv(worker_dir)
+        best_state_npz = worker_dir / "best_opening_frame.npz"
+        best_state_meta = {}
+        if best_state_npz.exists():
+            try:
+                best_state_meta = load_state_npz_data(best_state_npz)
+            except Exception:
+                best_state_meta = {}
 
         rows.append(
             {
@@ -1177,7 +1405,10 @@ def finalize_generation(context: dict, generation_index: int) -> dict:
                 "best_score_nm": best_score,
                 "best_score_angstrom": None if best_score is None else best_score * 10.0,
                 "best_step": meta.get("best_step"),
-                "best_state_npz": str(worker_dir / "best_opening_frame.npz"),
+                "best_time_ps": best_state_meta.get("time_ps"),
+                "best_kinetic_energy_kj_mol": best_state_meta.get("kinetic_energy_kj_mol"),
+                "best_potential_energy_kj_mol": best_state_meta.get("potential_energy_kj_mol"),
+                "best_state_npz": str(best_state_npz),
                 "best_gro": str(worker_dir / "best_opening_frame.gro"),
                 "trajectory_xtc": str(worker_dir / "production.xtc"),
                 "score_csv": str(worker_dir / "opening_scores.csv"),
@@ -1230,6 +1461,9 @@ def finalize_generation(context: dict, generation_index: int) -> dict:
                     "best_score_nm": frame["best_score_nm"],
                     "best_score_angstrom": frame["best_score_angstrom"],
                     "best_step": frame["best_step"],
+                    "best_time_ps": frame.get("best_time_ps"),
+                    "best_kinetic_energy_kj_mol": frame.get("best_kinetic_energy_kj_mol"),
+                    "best_potential_energy_kj_mol": frame.get("best_potential_energy_kj_mol"),
                     "lineage": frame.get("lineage", {}),
                     "is_replacement": frame.get("is_replacement", False),
                     "opening_metric_uses_pbc": True,
@@ -1247,7 +1481,9 @@ def finalize_generation(context: dict, generation_index: int) -> dict:
                 "selected_best_gro": frame["best_gro"],
                 "selected_best_state_npz": frame["best_state_npz"],
                 "selected_best_step": frame["best_step"],
+                "selected_best_time_ps": frame.get("best_time_ps"),
                 "selected_best_score_angstrom": frame["best_score_angstrom"],
+                "selected_best_kinetic_energy_kj_mol": frame.get("best_kinetic_energy_kj_mol"),
                 "parent": frame.get("lineage", {}),
                 "opening_metric_uses_pbc": True,
             }
@@ -1256,7 +1492,16 @@ def finalize_generation(context: dict, generation_index: int) -> dict:
     context["next_generation"] = generation_index + 1
     context["last_updated"] = now_iso()
     context["opening_metric_uses_pbc"] = True
+    write_selected_spawning_lineage_csv(run_dir, context)
     write_json(run_dir / "context.json", context)
+    if selected:
+        print(
+            f"[{now_iso()}] Generation {generation_index:03d} selected parent: "
+            f"rank 1 {Path(selected[0]['worker_dir']).name}, "
+            f"score={selected[0]['best_score_angstrom']:.3f} A, "
+            f"step={selected[0].get('best_step')}",
+            flush=True,
+        )
     return gen_meta
 
 
@@ -1273,6 +1518,55 @@ def read_best_score_from_csv(worker_dir: Path) -> Optional[float]:
         return best_a / 10.0
     except Exception:
         return None
+
+
+def write_selected_spawning_lineage_csv(run_dir: Path, context: dict) -> None:
+    columns = [
+        "generation",
+        "rank",
+        "source_worker",
+        "best_step",
+        "best_time_ps",
+        "best_score_angstrom",
+        "best_gro",
+        "best_state_npz",
+        "used_to_seed_generation",
+        "parent_generation",
+        "parent_worker_dir",
+        "parent_rank",
+        "parent_best_step",
+        "parent_best_score_angstrom",
+    ]
+    rows = []
+    for generation_record in context.get("selected_frames", []):
+        generation = generation_record.get("generation")
+        for frame in generation_record.get("frames", []):
+            parent = frame.get("lineage", {}) or {}
+            rows.append(
+                {
+                    "generation": generation,
+                    "rank": frame.get("rank"),
+                    "source_worker": frame.get("worker_dir"),
+                    "best_step": frame.get("best_step"),
+                    "best_time_ps": frame.get("best_time_ps"),
+                    "best_score_angstrom": frame.get("best_score_angstrom"),
+                    "best_gro": frame.get("best_gro"),
+                    "best_state_npz": frame.get("best_state_npz"),
+                    "used_to_seed_generation": None if generation is None else int(generation) + 1,
+                    "parent_generation": parent.get("source_generation"),
+                    "parent_worker_dir": parent.get("source_worker"),
+                    "parent_rank": parent.get("source_rank"),
+                    "parent_best_step": parent.get("source_best_step"),
+                    "parent_best_score_angstrom": parent.get("source_best_score_angstrom"),
+                }
+            )
+    path = Path(run_dir) / "selected_spawning_frame_lineage.csv"
+    tmp = path.with_name(f"{path.name}.tmp.{os.getpid()}.{time.time_ns()}")
+    with open(tmp, "w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows(rows)
+    tmp.replace(path)
 
 
 def run_single_worker_from_args(args) -> None:
@@ -1364,16 +1658,47 @@ def run_single_worker(context: dict, generation_index: int, worker_dir: Path) ->
 
 
 def run_min_nvt_npt(worker_dir: Path, gro, top, system_nvt, system_npt, config: dict, seed: int, nvt_steps: int, npt_equil_steps: int, initial_start_state: dict) -> None:
+    parent_state = None
     if initial_start_state and initial_start_state.get("state_npz"):
-        initial_positions, initial_box_vectors = load_state_npz(Path(initial_start_state["state_npz"]))
+        parent_state = load_state_npz_data(Path(initial_start_state["state_npz"]))
+        initial_positions = parent_state["positions"]
+        initial_box_vectors = parent_state["box_vectors"]
     else:
         initial_positions = gro.positions
         initial_box_vectors = gro.getPeriodicBoxVectors()
 
+    print(f"[{now_iso()}] {worker_dir.name}: starting minimization/NVT/NPT setup", flush=True)
+
     sim_nvt = create_simulation(top.topology, system_nvt, config, seed, add_barostat=False)
     sim_nvt.context.setPositions(initial_positions)
     sim_nvt.context.setPeriodicBoxVectors(*initial_box_vectors)
-    sim_nvt.context.setVelocitiesToTemperature(float(config["temperature_k"]) * unit.kelvin, seed)
+    if parent_state is not None:
+        velocity_diag = initialise_velocities_with_parent_ke(
+            sim_nvt,
+            float(config["temperature_k"]),
+            seed,
+            parent_state,
+            config,
+            worker_dir,
+            stage="initial_parent_seed_nvt",
+        )
+        print(
+            f"[{now_iso()}] {worker_dir.name}: parent-seeded velocities via "
+            f"{velocity_diag.get('velocity_initialisation_method')} "
+            f"scale={velocity_diag.get('velocity_scale_factor', 'n/a')}",
+            flush=True,
+        )
+    else:
+        sim_nvt.context.setVelocitiesToTemperature(float(config["temperature_k"]) * unit.kelvin, seed)
+        record_velocity_diagnostics(
+            worker_dir,
+            {
+                "stage": "initial_generation_0_nvt",
+                "velocity_initialisation_method": "fresh_maxwell_boltzmann",
+                "seed": int(seed),
+                "temperature_k": float(config["temperature_k"]),
+            },
+        )
 
     sim_nvt.reporters.append(
         StateDataReporter(
@@ -1387,18 +1712,69 @@ def run_min_nvt_npt(worker_dir: Path, gro, top, system_nvt, system_npt, config: 
         )
     )
 
-    sim_nvt.minimizeEnergy(maxIterations=int(config["minimize_max_iterations"]))
-    state_after_min = sim_nvt.context.getState(getPositions=True, getVelocities=True, enforcePeriodicBox=True)
-    save_state_npz(worker_dir / "after_minimization.npz", state_after_min.getPositions(), state_after_min.getPeriodicBoxVectors())
+    should_minimize = parent_state is None or bool(config.get("minimize_parent_seeded_generations", False))
+    if should_minimize:
+        print(
+            f"[{now_iso()}] {worker_dir.name}: starting minimization "
+            f"({int(config['minimize_max_iterations'])} max iterations)",
+            flush=True,
+        )
+        sim_nvt.minimizeEnergy(maxIterations=int(config["minimize_max_iterations"]))
+        minimization_status = "performed"
+    else:
+        minimization_status = "skipped_parent_seeded_generation"
+        print(
+            f"[{now_iso()}] {worker_dir.name}: skipping minimization for parent-seeded generation; "
+            "starting from selected production frame geometry",
+            flush=True,
+        )
+
+    state_after_min = sim_nvt.context.getState(getPositions=True, getVelocities=True, getEnergy=True, enforcePeriodicBox=True)
+    save_state_npz(
+        worker_dir / "after_minimization.npz",
+        state_after_min.getPositions(),
+        state_after_min.getPeriodicBoxVectors(),
+        velocities=state_after_min.getVelocities(),
+        kinetic_energy=state_after_min.getKineticEnergy(),
+        potential_energy=state_after_min.getPotentialEnergy(),
+        time_ps=state_after_min.getTime().value_in_unit(unit.picosecond),
+        step=sim_nvt.currentStep,
+    )
+    meta = read_worker_meta(worker_dir)
+    meta["minimization_status"] = minimization_status
+    meta["minimize_parent_seeded_generations"] = bool(config.get("minimize_parent_seeded_generations", False))
+    meta["after_minimization_npz"] = str(worker_dir / "after_minimization.npz")
+    meta["updated"] = now_iso()
+    write_worker_meta(worker_dir, meta)
+    print(f"[{now_iso()}] {worker_dir.name}: minimization {minimization_status}; starting NVT ({nvt_steps} steps)", flush=True)
 
     sim_nvt.step(nvt_steps)
-    state_after_nvt = sim_nvt.context.getState(getPositions=True, getVelocities=True, enforcePeriodicBox=True)
-    save_state_npz(worker_dir / "after_nvt.npz", state_after_nvt.getPositions(), state_after_nvt.getPeriodicBoxVectors())
+    state_after_nvt = sim_nvt.context.getState(getPositions=True, getVelocities=True, getEnergy=True, enforcePeriodicBox=True)
+    save_state_npz(
+        worker_dir / "after_nvt.npz",
+        state_after_nvt.getPositions(),
+        state_after_nvt.getPeriodicBoxVectors(),
+        velocities=state_after_nvt.getVelocities(),
+        kinetic_energy=state_after_nvt.getKineticEnergy(),
+        potential_energy=state_after_nvt.getPotentialEnergy(),
+        time_ps=state_after_nvt.getTime().value_in_unit(unit.picosecond),
+        step=sim_nvt.currentStep,
+    )
+    print(f"[{now_iso()}] {worker_dir.name}: NVT complete; starting NPT equilibration ({npt_equil_steps} steps)", flush=True)
 
     sim_npt = create_simulation(top.topology, system_npt, config, seed + 17, add_barostat=True)
     sim_npt.context.setPositions(state_after_nvt.getPositions())
     sim_npt.context.setPeriodicBoxVectors(*state_after_nvt.getPeriodicBoxVectors())
-    sim_npt.context.setVelocitiesToTemperature(float(config["temperature_k"]) * unit.kelvin, seed + 17)
+    sim_npt.context.setVelocities(state_after_nvt.getVelocities())
+    record_velocity_diagnostics(
+        worker_dir,
+        {
+            "stage": "npt_equil_from_nvt",
+            "velocity_initialisation_method": "carried_forward_from_nvt",
+            "seed": int(seed + 17),
+            "temperature_k": float(config["temperature_k"]),
+        },
+    )
 
     sim_npt.reporters.append(
         StateDataReporter(
@@ -1417,8 +1793,18 @@ def run_min_nvt_npt(worker_dir: Path, gro, top, system_nvt, system_npt, config: 
     )
 
     sim_npt.step(npt_equil_steps)
-    state_after_npt = sim_npt.context.getState(getPositions=True, getVelocities=True, enforcePeriodicBox=True)
-    save_state_npz(worker_dir / "after_npt_equil.npz", state_after_npt.getPositions(), state_after_npt.getPeriodicBoxVectors())
+    state_after_npt = sim_npt.context.getState(getPositions=True, getVelocities=True, getEnergy=True, enforcePeriodicBox=True)
+    save_state_npz(
+        worker_dir / "after_npt_equil.npz",
+        state_after_npt.getPositions(),
+        state_after_npt.getPeriodicBoxVectors(),
+        velocities=state_after_npt.getVelocities(),
+        kinetic_energy=state_after_npt.getKineticEnergy(),
+        potential_energy=state_after_npt.getPotentialEnergy(),
+        time_ps=state_after_npt.getTime().value_in_unit(unit.picosecond),
+        step=sim_npt.currentStep,
+    )
+    print(f"[{now_iso()}] {worker_dir.name}: NPT equilibration complete", flush=True)
 
     meta = read_worker_meta(worker_dir)
     meta["equilibration_completed"] = True
@@ -1484,10 +1870,17 @@ def run_or_resume_production(
                 raise RuntimeError("Checkpoint was corrupt and after_npt_equil.npz does not exist.")
 
     if not resumed_from_checkpoint:
-        positions, box_vectors = load_state_npz(worker_dir / "after_npt_equil.npz")
-        sim_prod.context.setPositions(positions)
-        sim_prod.context.setPeriodicBoxVectors(*box_vectors)
-        sim_prod.context.setVelocitiesToTemperature(float(config["temperature_k"]) * unit.kelvin, seed + 31)
+        equil_state = load_state_npz_data(worker_dir / "after_npt_equil.npz")
+        sim_prod.context.setPositions(equil_state["positions"])
+        sim_prod.context.setPeriodicBoxVectors(*equil_state["box_vectors"])
+        velocity_diag = set_velocities_from_state_or_temperature(sim_prod, equil_state, float(config["temperature_k"]), seed + 31)
+        velocity_diag["stage"] = "production_start_from_after_npt_equil"
+        record_velocity_diagnostics(worker_dir, velocity_diag)
+        print(
+            f"[{now_iso()}] {worker_dir.name}: production velocities via "
+            f"{velocity_diag.get('velocity_initialisation_method')}",
+            flush=True,
+        )
 
     archive_existing_xtc_if_resuming(worker_dir, trajectory_path, resumed_from_checkpoint)
     append_xtc = trajectory_path.exists() and not resumed_from_checkpoint
@@ -1533,6 +1926,11 @@ def run_or_resume_production(
     meta["updated"] = now_iso()
     meta["opening_metric_uses_pbc"] = True
     write_worker_meta(worker_dir, meta)
+    print(
+        f"[{now_iso()}] {worker_dir.name}: production started at step {sim_prod.currentStep}; "
+        f"target {production_steps} steps; checkpoint every {checkpoint_interval_steps} steps",
+        flush=True,
+    )
 
     while sim_prod.currentStep < production_steps:
         if STOP_REQUESTED:
@@ -1552,8 +1950,17 @@ def run_or_resume_production(
         sim_prod.step(chunk)
         save_openmm_checkpoint_atomic(sim_prod, checkpoint_path)
 
-        state = sim_prod.context.getState(getPositions=True, getVelocities=True, enforcePeriodicBox=True)
-        save_state_npz(worker_dir / "latest_production_state.npz", state.getPositions(), state.getPeriodicBoxVectors())
+        state = sim_prod.context.getState(getPositions=True, getVelocities=True, getEnergy=True, enforcePeriodicBox=True)
+        save_state_npz(
+            worker_dir / "latest_production_state.npz",
+            state.getPositions(),
+            state.getPeriodicBoxVectors(),
+            velocities=state.getVelocities(),
+            kinetic_energy=state.getKineticEnergy(),
+            potential_energy=state.getPotentialEnergy(),
+            time_ps=state.getTime().value_in_unit(unit.picosecond),
+            step=sim_prod.currentStep,
+        )
 
         meta = read_worker_meta(worker_dir)
         meta["status"] = "checkpointed"
@@ -1565,9 +1972,23 @@ def run_or_resume_production(
         meta["best_step"] = score_reporter.best_step
         meta["opening_metric_uses_pbc"] = True
         write_worker_meta(worker_dir, meta)
+        print(
+            f"[{now_iso()}] {worker_dir.name}: checkpoint step {sim_prod.currentStep}/{production_steps} "
+            f"({meta['completion_fraction'] * 100.0:.1f}%), best={meta['best_score_angstrom']:.3f} A",
+            flush=True,
+        )
 
-    final_state = sim_prod.context.getState(getPositions=True, getVelocities=True, enforcePeriodicBox=True)
-    save_state_npz(worker_dir / "final_frame.npz", final_state.getPositions(), final_state.getPeriodicBoxVectors())
+    final_state = sim_prod.context.getState(getPositions=True, getVelocities=True, getEnergy=True, enforcePeriodicBox=True)
+    save_state_npz(
+        worker_dir / "final_frame.npz",
+        final_state.getPositions(),
+        final_state.getPeriodicBoxVectors(),
+        velocities=final_state.getVelocities(),
+        kinetic_energy=final_state.getKineticEnergy(),
+        potential_energy=final_state.getPotentialEnergy(),
+        time_ps=final_state.getTime().value_in_unit(unit.picosecond),
+        step=sim_prod.currentStep,
+    )
 
     meta = read_worker_meta(worker_dir)
     meta.update(
