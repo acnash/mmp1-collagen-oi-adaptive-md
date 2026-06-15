@@ -73,7 +73,10 @@ case "${SYSTEM_VARIANT}" in
 esac
 
 VALIDATED_GRO="${INPUT_GRO%.gro}_openmm_10ps_npt.gro"
-if [[ -f "${INPUT_DIR}/${VALIDATED_GRO}" ]]; then
+FINAL_WITH_VELOCITIES_GRO="${INPUT_GRO%.gro}_openmm_10ps_nvt_10ps_npt_with_velocities.gro"
+if [[ -f "${INPUT_DIR}/${FINAL_WITH_VELOCITIES_GRO}" ]]; then
+    INPUT_GRO="${FINAL_WITH_VELOCITIES_GRO}"
+elif [[ -f "${INPUT_DIR}/${VALIDATED_GRO}" ]]; then
     INPUT_GRO="${VALIDATED_GRO}"
 fi
 

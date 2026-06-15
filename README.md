@@ -69,14 +69,25 @@ generated_mutants/salted_150mM_NaCl/collagen_G978S/
     summary.json
 ```
 
-`G984C` and `G987R` did not pass the same validation. Both developed NaN coordinates during NVT. Additional diagnostics showed:
+Initial `G984C` and `G987R` structures did not pass the same validation. Both developed NaN coordinates during NVT. Additional diagnostics showed:
 
 ```text
 G984C: failed during NVT at 0.5 fs; also failed at 10 K / 0.1 fs.
 G987R: failed during NVT at 0.5 fs; also failed at 10 K / 0.1 fs.
 ```
 
-Therefore, no post-NPT validated `.gro` is committed for `G984C` or `G987R`. Those systems require further coordinate/topology correction before being used for production adaptive MD.
+Those systems were later rescued by a more aggressive OpenMM-only relaxation campaign followed by 10 ps NVT and 10 ps NPT at 312.5 K with a 2 fs timestep. Final velocity-bearing structures are committed for the three mutant systems:
+
+```text
+generated_mutants/salted_150mM_NaCl/collagen_G978S/
+  NPT_eq_collagen_G978S_150mM_NaCl_openmm_10ps_nvt_10ps_npt_with_velocities.gro
+
+generated_mutants/salted_150mM_NaCl/collagen_G984C/
+  NPT_eq_collagen_G984C_150mM_NaCl_openmm_10ps_nvt_10ps_npt_with_velocities.gro
+
+generated_mutants/salted_150mM_NaCl/collagen_G987R/
+  NPT_eq_collagen_G987R_150mM_NaCl_openmm_10ps_nvt_10ps_npt_with_velocities.gro
+```
 
 Validation scripts:
 
@@ -102,7 +113,7 @@ The adaptive runner is:
 scripts/adaptive_mmp1_unwinding_dual_worker.py
 ```
 
-It launches generations of independent OpenMM workers. Each worker performs minimization, NVT, NPT, and production MD. During production, a PBC-corrected collagen-opening metric is reported. At the end of each generation, workers are ranked by maximum opening score and the most-open structures seed the next generation.
+It launches generations of independent OpenMM workers. Generation 0 performs minimization, NVT, NPT, and production MD. Later generations use single-parent conformational seeding: the highest-opening parent frame seeds all workers in the next generation, using kinetic-energy-matched stochastic velocity reinitialisation. During production, a PBC-corrected collagen-opening metric is reported.
 
 The opening metric uses residues 977-987 from all three collagen chains. For each residue position, it measures all three pairwise C-alpha distances between collagen chains using minimum-image periodic distances. The score is the mean of 33 distances:
 
@@ -129,7 +140,7 @@ adaptive_run_G987R_YYYYMMDD_HHMMSS
 
 The runner validates that the opening-score window contains 33 CA atoms across the three collagen chains and that the expected mutation is present on chain 1 only.
 
-## SLURM Launcher
+## SLURM Launchers
 
 Use:
 
@@ -156,3 +167,15 @@ SYSTEM_VARIANT="G987R"
 For fresh runs, the launcher chooses the corresponding system folder and `.gro` file. If a validated OpenMM post-NPT `.gro` exists, the launcher uses it automatically; otherwise it falls back to the salted starting `.gro`.
 
 For resume runs, set `RUN_DIR` to the existing adaptive run folder and leave the system inputs unchanged.
+
+System-specific launchers are also provided so all four systems can be submitted independently:
+
+```bash
+cd /scratch/$USER/mmp1-collagen-oi-adaptive-md
+sbatch scripts/run-unwinding-wild_type.sh
+sbatch scripts/run-unwinding-G978S.sh
+sbatch scripts/run-unwinding-G984C.sh
+sbatch scripts/run-unwinding-G987R.sh
+```
+
+Each bespoke launcher has unique SLURM job, stdout, and stderr names. The mutant launchers use the final 10 ps NVT + 10 ps NPT velocity-bearing `.gro` files as their fresh-run inputs.
