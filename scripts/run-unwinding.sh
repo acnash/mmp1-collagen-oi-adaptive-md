@@ -72,6 +72,11 @@ case "${SYSTEM_VARIANT}" in
         ;;
 esac
 
+VALIDATED_GRO="${INPUT_GRO%.gro}_openmm_10ps_npt.gro"
+if [[ -f "${INPUT_DIR}/${VALIDATED_GRO}" ]]; then
+    INPUT_GRO="${VALIDATED_GRO}"
+fi
+
 if [[ -n "${RUN_DIR}" ]]; then
     conda run -n openmm python "${PYTHON_SCRIPT}" \
         --resume "${RUN_DIR}" \

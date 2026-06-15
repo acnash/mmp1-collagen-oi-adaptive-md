@@ -1,1 +1,158 @@
-# mmp1-collagen-oi-adaptive-md
+# MMP-1 / Osteogenesis Imperfecta Adaptive Collagen Unwinding
+
+This repository contains prepared GROMACS/OpenMM systems and scripts for adaptive molecular dynamics of human MMP-1 bound to a type-I-collagen-like triple-helical collagen peptide. The scientific aim is to compare wild-type collagen with clinically motivated osteogenesis imperfecta glycine substitutions near the MMP-1 collagenase cleavage region.
+
+## Systems
+
+The modeled collagen register follows the 4AUO collagen peptide numbering. The MMP-1 scissile-region glycine is residue 981 in the 4AUO coordinate register. The prepared systems are:
+
+| System | Mutated chain | Collagen residue change | Input folder |
+|---|---:|---|---|
+| `wild_type` | none | none | `generated_mutants/salted_150mM_NaCl/wild_type/` |
+| `G978S` | chain 1 | `GLY978 -> SER978` | `generated_mutants/salted_150mM_NaCl/collagen_G978S/` |
+| `G984C` | chain 1 | `GLY984 -> CYS984` | `generated_mutants/salted_150mM_NaCl/collagen_G984C/` |
+| `G987R` | chain 1 | `GLY987 -> ARG987` | `generated_mutants/salted_150mM_NaCl/collagen_G987R/` |
+
+Each system directory contains a complete local GROMACS include set:
+
+```text
+system.top
+topol_MMP1_active.itp
+collagen.itp
+collagen_G*.itp       # mutant systems only
+forcefield.itp
+ffbonded.itp
+ffnonbonded.itp
+tip3p.itp
+ions.itp
+*.gro
+```
+
+Position-restraint include calls have been removed from the committed `system.top` files. Restraints should be added programmatically in OpenMM workflows when needed.
+
+## Salt And Charge
+
+The systems were salted to a target of 150 mM NaCl by replacing water molecules with ions. For this box volume, that corresponds to 57 NaCl pairs. Existing neutralizing chloride ions were preserved.
+
+Final molecule counts:
+
+| System | SOL | NA | CL | Net charge |
+|---|---:|---:|---:|---:|
+| `wild_type` | 18745 | 57 | 67 | ~0 |
+| `G978S` | 18745 | 57 | 67 | ~0 |
+| `G984C` | 18745 | 57 | 67 | ~0 |
+| `G987R` | 18744 | 57 | 68 | ~0 |
+
+## OpenMM Validation Runs
+
+Short validation runs were attempted locally in the `kcc2` conda environment using OpenMM CPU platform with 8 CPU threads. The protocol was:
+
+```text
+energy minimization
+10 ps NVT
+10 ps NPT
+```
+
+The original 2 fs startup was unstable for `G978S`, so validation was repeated with a 0.5 fs timestep. That protocol completed successfully for `G978S`.
+
+Validated output:
+
+```text
+generated_mutants/salted_150mM_NaCl/collagen_G978S/
+  NPT_eq_collagen_G978S_150mM_NaCl_openmm_10ps_npt.gro
+  openmm_validation/
+    G978S_after_minimization.gro
+    G978S_after_10ps_nvt.gro
+    NPT_eq_collagen_G978S_150mM_NaCl_openmm_10ps_npt.gro
+    nvt.log
+    npt.log
+    summary.json
+```
+
+`G984C` and `G987R` did not pass the same validation. Both developed NaN coordinates during NVT. Additional diagnostics showed:
+
+```text
+G984C: failed during NVT at 0.5 fs; also failed at 10 K / 0.1 fs.
+G987R: failed during NVT at 0.5 fs; also failed at 10 K / 0.1 fs.
+```
+
+Therefore, no post-NPT validated `.gro` is committed for `G984C` or `G987R`. Those systems require further coordinate/topology correction before being used for production adaptive MD.
+
+Validation scripts:
+
+```text
+scripts/openmm_validate_mutants.py
+scripts/openmm_diagnose_mutant.py
+```
+
+Example validation command:
+
+```bash
+conda run -n kcc2 python scripts/openmm_validate_mutants.py \
+  --threads 8 \
+  --timestep_ps 0.0005 \
+  --variants G978S G984C G987R
+```
+
+## Adaptive Unwinding Runner
+
+The adaptive runner is:
+
+```text
+scripts/adaptive_mmp1_unwinding_dual_worker.py
+```
+
+It launches generations of independent OpenMM workers. Each worker performs minimization, NVT, NPT, and production MD. During production, a PBC-corrected collagen-opening metric is reported. At the end of each generation, workers are ranked by maximum opening score and the most-open structures seed the next generation.
+
+The opening metric uses residues 977-987 from all three collagen chains. For each residue position, it measures all three pairwise C-alpha distances between collagen chains using minimum-image periodic distances. The score is the mean of 33 distances:
+
+```text
+11 residue positions x 3 inter-chain distances = 33 distances
+```
+
+The runner is now system-aware:
+
+```bash
+--system_variant wild_type|G978S|G984C|G987R
+--input_gro <coordinate.gro>
+--input_top system.top
+```
+
+Fresh run directories include the variant label:
+
+```text
+adaptive_run_wild_type_YYYYMMDD_HHMMSS
+adaptive_run_G978S_YYYYMMDD_HHMMSS
+adaptive_run_G984C_YYYYMMDD_HHMMSS
+adaptive_run_G987R_YYYYMMDD_HHMMSS
+```
+
+The runner validates that the opening-score window contains 33 CA atoms across the three collagen chains and that the expected mutation is present on chain 1 only.
+
+## SLURM Launcher
+
+Use:
+
+```text
+scripts/run-unwinding.sh
+```
+
+The script is intended to be run from a cloned repository on SLURM scratch space:
+
+```bash
+cd /scratch/$USER/mmp1-collagen-oi-adaptive-md
+sbatch scripts/run-unwinding.sh
+```
+
+Edit `SYSTEM_VARIANT` near the top of the file:
+
+```bash
+SYSTEM_VARIANT="wild_type"
+SYSTEM_VARIANT="G978S"
+SYSTEM_VARIANT="G984C"
+SYSTEM_VARIANT="G987R"
+```
+
+For fresh runs, the launcher chooses the corresponding system folder and `.gro` file. If a validated OpenMM post-NPT `.gro` exists, the launcher uses it automatically; otherwise it falls back to the salted starting `.gro`.
+
+For resume runs, set `RUN_DIR` to the existing adaptive run folder and leave the system inputs unchanged.

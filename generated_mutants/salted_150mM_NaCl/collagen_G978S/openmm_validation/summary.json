@@ -1,0 +1,16 @@
+{
+  "variant": "G978S",
+  "started": "2026-06-15T09:28:43.932677",
+  "completed": "2026-06-15T09:46:48.964926",
+  "threads": 8,
+  "platform": "CPU",
+  "temperature_k": 310.15,
+  "timestep_ps": 0.0005,
+  "nvt_ps": 10.0,
+  "npt_ps": 10.0,
+  "input_gro": "NPT_eq_collagen_G978S_150mM_NaCl.gro",
+  "final_gro": "NPT_eq_collagen_G978S_150mM_NaCl_openmm_10ps_npt.gro",
+  "minimized_potential_kj_per_mol": -1042060.4800593024,
+  "post_nvt_potential_kj_per_mol": -842443.9502906519,
+  "post_npt_potential_kj_per_mol": -838920.6479157862
+}

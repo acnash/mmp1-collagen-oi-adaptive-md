@@ -1,0 +1,26 @@
+{
+  "variant": "G987R",
+  "platform": "CPU",
+  "threads": 8,
+  "status": "failed_validation",
+  "successful_outputs": [
+    "G987R_after_minimization.gro"
+  ],
+  "failed_stage": "NVT",
+  "observed_failure": "Particle coordinate is NaN",
+  "attempts": [
+    {
+      "protocol": "minimization + 10 ps NVT + 10 ps NPT",
+      "temperature_k": 310.15,
+      "timestep_ps": 0.0005,
+      "result": "NaN during NVT"
+    },
+    {
+      "protocol": "diagnostic one-step NVT",
+      "temperature_k": 10.0,
+      "timestep_ps": 0.0001,
+      "result": "NaN at step 3"
+    }
+  ],
+  "conclusion": "G987R is not validated for production adaptive MD. The mutant coordinate/topology requires further correction before use."
+}
