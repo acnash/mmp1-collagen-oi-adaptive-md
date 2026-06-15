@@ -1,11 +1,9 @@
 #include "forcefield.itp"
 
 #include "topol_MMP1_active.itp"
-;#include "posre_MMP1_active.itp"
 
 #include "collagen_G978S.itp"
 #include "collagen.itp"
-;#include "posre_collagen.itp"
 
 #include "tip3p.itp"
 #include "ions.itp"
