@@ -32,9 +32,22 @@ MODE="auto"
 module load mamba
 source activate openmm
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+if [[ -n "${SLURM_SUBMIT_DIR:-}" && -f "${SLURM_SUBMIT_DIR}/scripts/adaptive_mmp1_unwinding_dual_worker.py" ]]; then
+    REPO_ROOT="${SLURM_SUBMIT_DIR}"
+else
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+fi
+cd "${REPO_ROOT}"
 PYTHON_SCRIPT="${REPO_ROOT}/scripts/adaptive_mmp1_unwinding_dual_worker.py"
+
+if [[ ! -f "${PYTHON_SCRIPT}" ]]; then
+    echo "Cannot find unwinding script: ${PYTHON_SCRIPT}" >&2
+    echo "Submit from the repository root, for example:" >&2
+    echo "  cd /scratch/\$USER/mmp1-collagen-oi-adaptive-md" >&2
+    echo "  sbatch scripts/run-unwinding-G978S.sh" >&2
+    exit 2
+fi
 
 INPUT_DIR="${REPO_ROOT}/generated_mutants/salted_150mM_NaCl/collagen_G978S"
 INPUT_GRO="NPT_eq_collagen_G978S_150mM_NaCl_openmm_10ps_nvt_10ps_npt_with_velocities.gro"
