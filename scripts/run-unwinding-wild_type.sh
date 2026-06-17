@@ -13,68 +13,17 @@
 
 set -euo pipefail
 
-# Run from a clone of the repository on SLURM scratch space:
-#   cd /scratch/$USER/mmp1-collagen-oi-adaptive-md
-#   sbatch scripts/run-unwinding-wild_type.sh
-#
-# Resume example:
-#   RUN_DIR="${REPO_ROOT}/generated_mutants/salted_150mM_NaCl/wild_type/adaptive_run_wild_type_YYYYMMDD_HHMMSS"
-#   Leave RUN_DIR="" for a fresh run.
-
-SYSTEM_VARIANT="wild_type"
-RUN_DIR=""
-
-TARGET_GENERATION=50
-CONCURRENT_WORKERS=4
-PLATFORM="CUDA"
-MODE="auto"
-
 module load mamba
 source activate openmm
 
-if [[ -n "${SLURM_SUBMIT_DIR:-}" && -f "${SLURM_SUBMIT_DIR}/scripts/adaptive_mmp1_unwinding_dual_worker.py" ]]; then
-    REPO_ROOT="${SLURM_SUBMIT_DIR}"
-else
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-fi
-cd "${REPO_ROOT}"
-PYTHON_SCRIPT="${REPO_ROOT}/scripts/adaptive_mmp1_unwinding_dual_worker.py"
+cd /scratch/anash19/mmp1-collagen-oi-adaptive-md
 
-if [[ ! -f "${PYTHON_SCRIPT}" ]]; then
-    echo "Cannot find unwinding script: ${PYTHON_SCRIPT}" >&2
-    echo "Submit from the repository root, for example:" >&2
-    echo "  cd /scratch/\$USER/mmp1-collagen-oi-adaptive-md" >&2
-    echo "  sbatch scripts/run-unwinding-wild_type.sh" >&2
-    exit 2
-fi
-
-INPUT_DIR="${REPO_ROOT}/generated_mutants/salted_150mM_NaCl/wild_type"
-INPUT_GRO="NPT_eq_wild_type_150mM_NaCl.gro"
-
-echo "Repository: ${REPO_ROOT}"
-echo "System variant: ${SYSTEM_VARIANT}"
-echo "Input directory: ${INPUT_DIR}"
-echo "Input GRO: ${INPUT_GRO}"
-echo "Target generation: ${TARGET_GENERATION}"
-echo "Concurrent workers: ${CONCURRENT_WORKERS}"
-echo "Platform: ${PLATFORM}"
-
-if [[ -n "${RUN_DIR}" ]]; then
-    conda run -n openmm python "${PYTHON_SCRIPT}" \
-        --resume "${RUN_DIR}" \
-        --platform "${PLATFORM}" \
-        --concurrent_workers "${CONCURRENT_WORKERS}" \
-        --mode "${MODE}" \
-        --target_generation "${TARGET_GENERATION}"
-else
-    conda run -n openmm python "${PYTHON_SCRIPT}" \
-        --input_dir "${INPUT_DIR}" \
-        --system_variant "${SYSTEM_VARIANT}" \
-        --input_gro "${INPUT_GRO}" \
-        --input_top system.top \
-        --platform "${PLATFORM}" \
-        --concurrent_workers "${CONCURRENT_WORKERS}" \
-        --mode "${MODE}" \
-        --target_generation "${TARGET_GENERATION}"
-fi
+python scripts/adaptive_mmp1_unwinding_dual_worker.py \
+    --input_dir generated_mutants/salted_150mM_NaCl/wild_type \
+    --system_variant wild_type \
+    --input_gro NPT_eq_wild_type_150mM_NaCl.gro \
+    --input_top system.top \
+    --platform CUDA \
+    --concurrent_workers 4 \
+    --mode auto \
+    --target_generation 50

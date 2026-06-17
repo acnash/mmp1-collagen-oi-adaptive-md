@@ -142,40 +142,31 @@ The runner validates that the opening-score window contains 33 CA atoms across t
 
 ## SLURM Launchers
 
-Use:
-
-```text
-scripts/run-unwinding.sh
-```
-
-The script is intended to be run from a cloned repository on SLURM scratch space:
+Use the system-specific launchers:
 
 ```bash
-cd /scratch/$USER/mmp1-collagen-oi-adaptive-md
-sbatch scripts/run-unwinding.sh
-```
-
-Edit `SYSTEM_VARIANT` near the top of the file:
-
-```bash
-SYSTEM_VARIANT="wild_type"
-SYSTEM_VARIANT="G978S"
-SYSTEM_VARIANT="G984C"
-SYSTEM_VARIANT="G987R"
-```
-
-For fresh runs, the launcher chooses the corresponding system folder and `.gro` file. If a validated OpenMM post-NPT `.gro` exists, the launcher uses it automatically; otherwise it falls back to the salted starting `.gro`.
-
-For resume runs, set `RUN_DIR` to the existing adaptive run folder and leave the system inputs unchanged.
-
-System-specific launchers are also provided so all four systems can be submitted independently:
-
-```bash
-cd /scratch/$USER/mmp1-collagen-oi-adaptive-md
+cd /scratch/anash19/mmp1-collagen-oi-adaptive-md
 sbatch scripts/run-unwinding-wild_type.sh
 sbatch scripts/run-unwinding-G978S.sh
 sbatch scripts/run-unwinding-G984C.sh
 sbatch scripts/run-unwinding-G987R.sh
+```
+
+Each launcher is deliberately explicit: it loads the `mamba` module, activates the `openmm` environment, changes into `/scratch/anash19/mmp1-collagen-oi-adaptive-md`, then runs one `python scripts/adaptive_mmp1_unwinding_dual_worker.py ...` command.
+
+The generic template is also available:
+
+```bash
+cd /scratch/anash19/mmp1-collagen-oi-adaptive-md
+sbatch scripts/run-unwinding.sh
+```
+
+For the generic template, edit `SYSTEM_VARIANT`, `INPUT_DIR`, and `INPUT_GRO` together near the top of the file:
+
+```bash
+SYSTEM_VARIANT="wild_type"
+INPUT_DIR="generated_mutants/salted_150mM_NaCl/wild_type"
+INPUT_GRO="NPT_eq_wild_type_150mM_NaCl.gro"
 ```
 
 Each bespoke launcher has unique SLURM job, stdout, and stderr names. The mutant launchers use the final 10 ps NVT + 10 ps NPT velocity-bearing `.gro` files as their fresh-run inputs.
