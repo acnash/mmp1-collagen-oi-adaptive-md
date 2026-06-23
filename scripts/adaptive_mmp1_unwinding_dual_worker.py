@@ -99,6 +99,20 @@ SYSTEM_VARIANTS = {
     },
 }
 
+COLLAGEN_WINDOW_RESNAMES = {
+    977: "ALA",
+    978: "GLY",
+    979: "GLN",
+    980: "ARG",
+    981: "GLY",
+    982: "ILE",
+    983: "VAL",
+    984: "GLY",
+    985: "LEU",
+    986: "HYP",
+    987: "GLY",
+}
+
 DEFAULT_CONFIG = {
     "input_gro": None,
     "input_top": "system.top",
@@ -449,7 +463,58 @@ def expected_residue_name(config: dict, chain_name: str, resid: int) -> str:
         and mutated_chain == chain_name
     ):
         return str(meta["mutant_residue"])
-    return "GLY" if resid in {978, 981, 984, 987, 990} else ""
+    return COLLAGEN_WINDOW_RESNAMES.get(resid, "")
+
+
+def expected_collagen_window_resnames(config: dict, chain_name: str, expected_resids: List[int]) -> List[str]:
+    return [expected_residue_name(config, chain_name, resid) for resid in expected_resids]
+
+
+def residue_ca_atom_index(residue) -> Optional[int]:
+    for atom in residue.atoms():
+        if atom.name == "CA":
+            return atom.index
+    return None
+
+
+def infer_ca_indices_from_residue_name_windows(topology, config: dict, expected_resids: List[int]) -> Optional[Dict[str, List[int]]]:
+    residues = list(topology.residues())
+    expected_len = len(expected_resids)
+    if expected_len <= 0:
+        return None
+
+    matches = []
+    for start in range(0, len(residues) - expected_len + 1):
+        window = residues[start:start + expected_len]
+        ca_indices = [residue_ca_atom_index(residue) for residue in window]
+        if any(idx is None for idx in ca_indices):
+            continue
+
+        names = [residue.name for residue in window]
+        for chain_i in range(3):
+            chain_name = f"chain_{chain_i + 1}"
+            expected_names = expected_collagen_window_resnames(config, chain_name, expected_resids)
+            if names == expected_names:
+                matches.append(
+                    {
+                        "start": start,
+                        "chain_name": chain_name,
+                        "ca_indices": [int(idx) for idx in ca_indices if idx is not None],
+                        "residue_names": names,
+                    }
+                )
+                break
+
+    if len(matches) < 3:
+        return None
+
+    matches = sorted(matches, key=lambda item: item["start"])[:3]
+    ca_indices = {}
+    for chain_i, match in enumerate(matches):
+        chain_name = f"chain_{chain_i + 1}"
+        ca_indices[chain_name] = match["ca_indices"]
+
+    return ca_indices
 
 
 def get_ca_indices(topology, config: dict) -> Dict[str, List[int]]:
@@ -499,6 +564,9 @@ def get_ca_indices(topology, config: dict) -> Dict[str, List[int]]:
     collagen_ca_records = sorted(collagen_ca_records, key=lambda x: x[0])
     required_total = 3 * expected_len
     if len(collagen_ca_records) != required_total:
+        inferred = infer_ca_indices_from_residue_name_windows(topology, config, expected_resids)
+        if inferred is not None:
+            return inferred
         raise ValueError(
             f"Expected {required_total} collagen CA atoms for three chains across residues "
             f"{residue_start}-{residue_end}, but found {len(collagen_ca_records)}: "
