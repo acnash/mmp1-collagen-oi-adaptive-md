@@ -170,3 +170,34 @@ INPUT_GRO="NPT_eq_wild_type_150mM_NaCl.gro"
 ```
 
 Each bespoke launcher has unique SLURM job, stdout, and stderr names. The mutant launchers use the final 10 ps NVT + 10 ps NPT velocity-bearing `.gro` files as their fresh-run inputs.
+
+## Joint Unwinding Monitor
+
+The joint unwinding monitor is:
+
+```text
+scripts/monitor_collagen_unwinding_progress.py
+```
+
+It reads only the adaptive runner's unwinding outputs: per-worker `opening_scores.csv`, `worker.json`, and per-generation `generation.json`. It does not perform structural clustering, contact analysis, hydrogen-bond analysis, PCA, or trajectory reanalysis.
+
+From the repository root, it can auto-detect the newest adaptive run for wild type and the three OI mutants:
+
+```bash
+python scripts/monitor_collagen_unwinding_progress.py \
+  --root . \
+  --analysis_dir joint_unwinding_report
+```
+
+For explicit resumed campaigns, pass the four run directories:
+
+```bash
+python scripts/monitor_collagen_unwinding_progress.py \
+  --wild_type_run generated_mutants/salted_150mM_NaCl/wild_type/adaptive_run_wild_type_YYYYMMDD_HHMMSS \
+  --g978s_run generated_mutants/salted_150mM_NaCl/collagen_G978S/adaptive_run_G978S_YYYYMMDD_HHMMSS \
+  --g984c_run generated_mutants/salted_150mM_NaCl/collagen_G984C/adaptive_run_G984C_YYYYMMDD_HHMMSS \
+  --g987r_run generated_mutants/salted_150mM_NaCl/collagen_G987R/adaptive_run_G987R_YYYYMMDD_HHMMSS \
+  --analysis_dir joint_unwinding_report
+```
+
+The default PDF is `joint_unwinding_report/joint_collagen_unwinding_progress_report.pdf`. The monitor also writes joint frame, worker, generation, and latest-generation CSV summaries.
