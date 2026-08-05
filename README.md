@@ -201,3 +201,34 @@ python scripts/monitor_collagen_unwinding_progress.py \
 ```
 
 The default PDF is `joint_unwinding_report/joint_collagen_unwinding_progress_report.pdf`. The monitor also writes joint frame, worker, generation, and latest-generation CSV summaries.
+
+## Joint Structural Report
+
+The structural report script is:
+
+```text
+scripts/report_collagen_structural_metrics.py
+```
+
+It uses the best worker/frame selected for each adaptive generation and analyzes collagen only. It reports hydrogen-bond distributions, backbone `phi`/`psi`/`omega` dihedral distributions, and plots structural metrics against the PBC-corrected unwinding score.
+
+Run it from the repository root with auto-detected newest runs:
+
+```bash
+python scripts/report_collagen_structural_metrics.py \
+  --root . \
+  --analysis_dir joint_structural_report
+```
+
+For explicit resumed campaigns:
+
+```bash
+python scripts/report_collagen_structural_metrics.py \
+  --wild_type_run generated_mutants/salted_150mM_NaCl/wild_type/adaptive_run_wild_type_YYYYMMDD_HHMMSS \
+  --g978s_run generated_mutants/salted_150mM_NaCl/collagen_G978S/adaptive_run_G978S_YYYYMMDD_HHMMSS \
+  --g984c_run generated_mutants/salted_150mM_NaCl/collagen_G984C/adaptive_run_G984C_YYYYMMDD_HHMMSS \
+  --g987r_run generated_mutants/salted_150mM_NaCl/collagen_G987R/adaptive_run_G987R_YYYYMMDD_HHMMSS \
+  --analysis_dir joint_structural_report
+```
+
+The default PDF is `joint_structural_report/joint_collagen_structural_report.pdf`. CSV outputs include `structural_best_frames.csv`, `structural_generation_summary.csv`, `structural_hydrogen_bonds.csv`, and `structural_backbone_dihedrals.csv`.
