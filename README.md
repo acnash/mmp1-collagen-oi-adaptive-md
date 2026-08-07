@@ -200,7 +200,7 @@ python scripts/monitor_collagen_unwinding_progress.py \
   --analysis_dir joint_unwinding_report
 ```
 
-The default PDF is `joint_unwinding_report/joint_collagen_unwinding_progress_report.pdf`. The monitor also writes joint frame, worker, generation, and latest-generation CSV summaries.
+The default PDF is `joint_unwinding_report/joint_collagen_unwinding_progress_report.pdf`. The monitor also writes joint frame, worker, generation, and latest-generation CSV summaries. For independent plotting, it writes `best_worker_unwinding_by_generation.csv` with five columns: generation, wild type, G978S, G984C, and G987R best-worker opening scores.
 
 ## Joint Structural Report
 

@@ -249,12 +249,37 @@ def latest_per_system(generation_df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def best_worker_unwinding_matrix(generation_df: pd.DataFrame) -> pd.DataFrame:
+    columns = ["generation", "wild_type", "G978S", "G984C", "G987R"]
+    if generation_df.empty:
+        return pd.DataFrame(columns=columns)
+    required = {"generation_index", "system", "best_worker_score_angstrom"}
+    if not required.issubset(generation_df.columns):
+        return pd.DataFrame(columns=columns)
+
+    df = generation_df.dropna(subset=["generation_index"]).copy()
+    if df.empty:
+        return pd.DataFrame(columns=columns)
+
+    pivot = df.pivot_table(
+        index="generation_index",
+        columns="system",
+        values="best_worker_score_angstrom",
+        aggfunc="max",
+    )
+    pivot = pivot.reindex(columns=["wild_type", "G978S", "G984C", "G987R"])
+    pivot = pivot.reset_index().rename(columns={"generation_index": "generation"})
+    pivot["generation"] = pivot["generation"].astype(int)
+    return pivot[columns]
+
+
 def write_csv_outputs(output_dir: Path, frame_df: pd.DataFrame, worker_df: pd.DataFrame, generation_df: pd.DataFrame) -> None:
     safe_mkdir(output_dir)
     frame_df.to_csv(output_dir / "joint_opening_score_frames.csv", index=False)
     worker_df.to_csv(output_dir / "joint_worker_unwinding_summary.csv", index=False)
     generation_df.to_csv(output_dir / "joint_generation_unwinding_summary.csv", index=False)
     latest_per_system(generation_df).to_csv(output_dir / "latest_generation_by_system.csv", index=False)
+    best_worker_unwinding_matrix(generation_df).to_csv(output_dir / "best_worker_unwinding_by_generation.csv", index=False)
 
 
 def add_text_page(pdf: PdfPages, title: str, lines: List[str]) -> None:
@@ -372,6 +397,7 @@ def build_title_lines(specs: List[RunSpec], frame_df: pd.DataFrame, worker_df: p
             "  joint_worker_unwinding_summary.csv",
             "  joint_opening_score_frames.csv",
             "  latest_generation_by_system.csv",
+            "  best_worker_unwinding_by_generation.csv",
         ]
     )
     return lines
