@@ -258,15 +258,50 @@ The four CSV outputs are `residue_resolved_opening_geometry.csv`, `residue_resol
 
 ## Complete Structural Analysis
 
-Run the hydrogen-bond, backbone, residue-resolved opening and MMP-1 contact analyses together:
+The complete workflow calculates periodic-boundary-corrected collagen hydrogen bonds, interchain and intrachain bond counts, backbone dihedrals, residue-resolved opening geometry and MMP-1 contact context. It reads selected `best_opening_frame.gro` structures only and does not read or transfer trajectories.
+
+On the simulation server, update the repository and run the analysis with:
 
 ```bash
+cd /scratch/anash19/mmp1-collagen-oi-adaptive-md
+git pull origin main
+
 python scripts/run_complete_structural_analysis.py \
   --root . \
   --output_dir complete_structural_analysis
 ```
 
-This workflow reads selected `best_opening_frame.gro` files only and does not read trajectories. Full server instructions, explicit-run options and the compact download command are in [`docs/STRUCTURAL_ANALYSIS.md`](docs/STRUCTURAL_ANALYSIS.md).
+The principal downloadable tables are:
+
+```text
+complete_structural_analysis/hydrogen_bonds_and_backbone/structural_best_frames.csv
+complete_structural_analysis/hydrogen_bonds_and_backbone/structural_generation_summary.csv
+complete_structural_analysis/hydrogen_bonds_and_backbone/structural_hydrogen_bonds.csv
+complete_structural_analysis/hydrogen_bonds_and_backbone/structural_backbone_dihedrals.csv
+complete_structural_analysis/opening_and_mmp1_context/residue_resolved_opening_geometry.csv
+complete_structural_analysis/opening_and_mmp1_context/residue_resolved_mmp1_contacts.csv
+complete_structural_analysis/opening_and_mmp1_context/structural_frame_summary.csv
+complete_structural_analysis/opening_and_mmp1_context/structural_changes_from_generation_zero.csv
+complete_structural_analysis/analysis_manifest.json
+```
+
+Create a compact archive containing the CSV data and reproducibility manifest, but no trajectories:
+
+```bash
+tar -czf complete_structural_analysis_csvs.tar.gz \
+  complete_structural_analysis/analysis_manifest.json \
+  complete_structural_analysis/hydrogen_bonds_and_backbone/*.csv \
+  complete_structural_analysis/opening_and_mmp1_context/*.csv
+```
+
+To create a fresh checkout on a different machine:
+
+```bash
+git clone https://github.com/acnash/mmp1-collagen-oi-adaptive-md.git
+cd mmp1-collagen-oi-adaptive-md
+```
+
+The manuscript is then available under `manuscript/`. Full structural-analysis instructions, including explicit adaptive-run directory options and analysis thresholds, are also retained in [`docs/STRUCTURAL_ANALYSIS.md`](docs/STRUCTURAL_ANALYSIS.md).
 
 ## Manuscript draft
 
