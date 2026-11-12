@@ -243,3 +243,15 @@ python scripts/report_collagen_structural_metrics.py \
 ```
 
 The default PDF is `joint_structural_report/joint_collagen_structural_report.pdf`. CSV outputs include `structural_best_frames.csv`, `structural_generation_summary.csv`, `structural_hydrogen_bonds.csv`, and `structural_backbone_dihedrals.csv`.
+
+## Compact Structural Analysis
+
+The compact structural analysis reads only the selected `best_opening_frame.gro` from each completed generation. It does not read or transfer trajectory files. It reports residue-resolved three-chain opening geometry, local collagen radius of gyration, aligned change from generation 0, and MMP-1 heavy-atom contacts:
+
+```bash
+python scripts/analyse_collagen_unwinding_structures.py \
+  --root . \
+  --analysis_dir compact_structural_analysis
+```
+
+The four CSV outputs are `residue_resolved_opening_geometry.csv`, `residue_resolved_mmp1_contacts.csv`, `structural_frame_summary.csv`, and `structural_changes_from_generation_zero.csv`.
