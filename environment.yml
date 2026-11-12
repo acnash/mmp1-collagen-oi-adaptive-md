@@ -1,0 +1,9 @@
+name: openmm
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.9
+  - openmm>=8
+  - numpy
+  - pandas
+  - matplotlib

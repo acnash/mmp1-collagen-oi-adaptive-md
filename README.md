@@ -2,6 +2,17 @@
 
 This repository contains prepared GROMACS/OpenMM systems and scripts for adaptive molecular dynamics of human MMP-1 bound to a type-I-collagen-like triple-helical collagen peptide. The scientific aim is to compare wild-type collagen with clinically motivated osteogenesis imperfecta glycine substitutions near the MMP-1 collagenase cleavage region.
 
+## Environment
+
+Create the documented `openmm` Conda environment from the repository root:
+
+```bash
+conda env create -f environment.yml
+conda activate openmm
+```
+
+The environment includes OpenMM and the NumPy, pandas, and Matplotlib dependencies used by the simulation, monitoring, and structural-report scripts. GPU execution additionally requires a compatible NVIDIA driver on the host system.
+
 ## Systems
 
 The modeled collagen register follows the 4AUO collagen peptide numbering. The MMP-1 scissile-region glycine is residue 981 in the 4AUO coordinate register. The prepared systems are:
