@@ -255,3 +255,19 @@ python scripts/analyse_collagen_unwinding_structures.py \
 ```
 
 The four CSV outputs are `residue_resolved_opening_geometry.csv`, `residue_resolved_mmp1_contacts.csv`, `structural_frame_summary.csv`, and `structural_changes_from_generation_zero.csv`.
+
+## Complete Structural Analysis
+
+Run the hydrogen-bond, backbone, residue-resolved opening and MMP-1 contact analyses together:
+
+```bash
+python scripts/run_complete_structural_analysis.py \
+  --root . \
+  --output_dir complete_structural_analysis
+```
+
+This workflow reads selected `best_opening_frame.gro` files only and does not read trajectories. Full server instructions, explicit-run options and the compact download command are in [`docs/STRUCTURAL_ANALYSIS.md`](docs/STRUCTURAL_ANALYSIS.md).
+
+## Manuscript draft
+
+The current manuscript draft is available in Markdown and PDF under [`manuscript/`](manuscript/). The draft reports the generation-matched unwinding analysis through generation 29 and identifies the structural analyses required for the next revision.

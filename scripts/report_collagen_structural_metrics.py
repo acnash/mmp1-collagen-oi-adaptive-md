@@ -281,10 +281,11 @@ def collagen_chain_ranges(input_dir: Path) -> Dict[str, Tuple[int, int, str]]:
     return ranges
 
 
-def parse_gro(path: Path) -> List[Atom]:
+def parse_gro(path: Path) -> Tuple[List[Atom], np.ndarray]:
     lines = path.read_text(errors="ignore").splitlines()
+    atom_count = int(lines[1].strip())
     atoms = []
-    for i, line in enumerate(lines[2:-1]):
+    for i, line in enumerate(lines[2 : 2 + atom_count]):
         try:
             resid = int(line[0:5])
             resname = line[5:10].strip()
@@ -294,7 +295,31 @@ def parse_gro(path: Path) -> List[Atom]:
         except Exception:
             continue
         atoms.append(Atom(index0=i, atom_number=atom_number, resid=resid, resname=resname, name=name, xyz_a=xyz_nm * 10.0))
-    return atoms
+    values = [float(value) * 10.0 for value in lines[2 + atom_count].split()]
+    if len(values) == 3:
+        box = np.diag(values)
+    elif len(values) == 9:
+        box = np.array(
+            [
+                [values[0], values[3], values[4]],
+                [values[5], values[1], values[6]],
+                [values[7], values[8], values[2]],
+            ],
+            dtype=float,
+        )
+    else:
+        raise ValueError(f"Unsupported GRO box with {len(values)} values in {path}")
+    return atoms, box
+
+
+def minimum_image(delta: np.ndarray, box: np.ndarray) -> np.ndarray:
+    fractional = np.asarray(delta, dtype=float) @ np.linalg.inv(box)
+    fractional -= np.round(fractional)
+    return fractional @ box
+
+
+def pbc_distance(a: np.ndarray, b: np.ndarray, box: np.ndarray) -> float:
+    return float(np.linalg.norm(minimum_image(b - a, box)))
 
 
 def assign_collagen_chains(atoms: List[Atom], ranges: Dict[str, Tuple[int, int, str]]) -> List[Atom]:
@@ -349,7 +374,15 @@ def dihedral_deg(p0, p1, p2, p3) -> float:
     return float(np.degrees(np.arctan2(y, x)))
 
 
-def collect_dihedrals(frame: dict, residues_by_chain: Dict[str, List[List[Atom]]]) -> pd.DataFrame:
+def pbc_dihedral_deg(p0, p1, p2, p3, box: np.ndarray) -> float:
+    unwrapped0 = np.zeros(3, dtype=float)
+    unwrapped1 = unwrapped0 + minimum_image(p1 - p0, box)
+    unwrapped2 = unwrapped1 + minimum_image(p2 - p1, box)
+    unwrapped3 = unwrapped2 + minimum_image(p3 - p2, box)
+    return dihedral_deg(unwrapped0, unwrapped1, unwrapped2, unwrapped3)
+
+
+def collect_dihedrals(frame: dict, residues_by_chain: Dict[str, List[List[Atom]]], box: np.ndarray) -> pd.DataFrame:
     rows = []
     for chain, residues in residues_by_chain.items():
         for i, residue in enumerate(residues):
@@ -372,14 +405,14 @@ def collect_dihedrals(frame: dict, residues_by_chain: Dict[str, List[List[Atom]]
             if i > 0:
                 c_prev = atom_by_name(residues[i - 1], "C")
                 if c_prev is not None:
-                    rows.append({**base, "dihedral": "phi", "angle_deg": dihedral_deg(c_prev.xyz_a, n.xyz_a, ca.xyz_a, c.xyz_a)})
+                    rows.append({**base, "dihedral": "phi", "angle_deg": pbc_dihedral_deg(c_prev.xyz_a, n.xyz_a, ca.xyz_a, c.xyz_a, box)})
             if i < len(residues) - 1:
                 n_next = atom_by_name(residues[i + 1], "N")
                 ca_next = atom_by_name(residues[i + 1], "CA")
                 if n_next is not None:
-                    rows.append({**base, "dihedral": "psi", "angle_deg": dihedral_deg(n.xyz_a, ca.xyz_a, c.xyz_a, n_next.xyz_a)})
+                    rows.append({**base, "dihedral": "psi", "angle_deg": pbc_dihedral_deg(n.xyz_a, ca.xyz_a, c.xyz_a, n_next.xyz_a, box)})
                 if n_next is not None and ca_next is not None:
-                    rows.append({**base, "dihedral": "omega", "angle_deg": dihedral_deg(ca.xyz_a, c.xyz_a, n_next.xyz_a, ca_next.xyz_a)})
+                    rows.append({**base, "dihedral": "omega", "angle_deg": pbc_dihedral_deg(ca.xyz_a, c.xyz_a, n_next.xyz_a, ca_next.xyz_a, box)})
     return pd.DataFrame(rows)
 
 
@@ -395,9 +428,9 @@ def is_hydrogen(atom: Atom) -> bool:
     return atom.name.startswith("H")
 
 
-def angle_dha_deg(donor: np.ndarray, hydrogen: np.ndarray, acceptor: np.ndarray) -> float:
-    v1 = donor - hydrogen
-    v2 = acceptor - hydrogen
+def angle_dha_deg(donor: np.ndarray, hydrogen: np.ndarray, acceptor: np.ndarray, box: np.ndarray) -> float:
+    v1 = minimum_image(donor - hydrogen, box)
+    v2 = minimum_image(acceptor - hydrogen, box)
     denom = np.linalg.norm(v1) * np.linalg.norm(v2)
     if denom == 0:
         return np.nan
@@ -405,7 +438,7 @@ def angle_dha_deg(donor: np.ndarray, hydrogen: np.ndarray, acceptor: np.ndarray)
     return float(np.degrees(np.arccos(cosang)))
 
 
-def infer_donor_hydrogens(atoms: List[Atom], max_dh_a: float) -> Dict[int, List[Atom]]:
+def infer_donor_hydrogens(atoms: List[Atom], box: np.ndarray, max_dh_a: float) -> Dict[int, List[Atom]]:
     donors = [a for a in atoms if is_heavy_donor(a)]
     hydrogens = [a for a in atoms if is_hydrogen(a)]
     mapping: Dict[int, List[Atom]] = {d.index0: [] for d in donors}
@@ -413,17 +446,17 @@ def infer_donor_hydrogens(atoms: List[Atom], max_dh_a: float) -> Dict[int, List[
         same_res_donors = [d for d in donors if d.chain == h.chain and d.resid == h.resid]
         if not same_res_donors:
             continue
-        distances = [(np.linalg.norm(h.xyz_a - d.xyz_a), d) for d in same_res_donors]
+        distances = [(pbc_distance(h.xyz_a, d.xyz_a, box), d) for d in same_res_donors]
         dist, donor = min(distances, key=lambda x: x[0])
         if dist <= max_dh_a:
             mapping[donor.index0].append(h)
     return mapping
 
 
-def collect_hbonds(frame: dict, atoms: List[Atom], max_da_a: float, min_angle_deg: float, max_dh_a: float) -> pd.DataFrame:
+def collect_hbonds(frame: dict, atoms: List[Atom], box: np.ndarray, max_da_a: float, min_angle_deg: float, max_dh_a: float) -> pd.DataFrame:
     donors = [a for a in atoms if is_heavy_donor(a)]
     acceptors = [a for a in atoms if is_acceptor(a)]
-    donor_h = infer_donor_hydrogens(atoms, max_dh_a)
+    donor_h = infer_donor_hydrogens(atoms, box, max_dh_a)
     rows = []
     for donor in donors:
         hydrogens = donor_h.get(donor.index0, [])
@@ -434,12 +467,12 @@ def collect_hbonds(frame: dict, atoms: List[Atom], max_da_a: float, min_angle_de
                 continue
             if donor.chain == acceptor.chain and donor.resid == acceptor.resid:
                 continue
-            da = float(np.linalg.norm(donor.xyz_a - acceptor.xyz_a))
+            da = pbc_distance(donor.xyz_a, acceptor.xyz_a, box)
             if da > max_da_a:
                 continue
             best = None
             for h in hydrogens:
-                angle = angle_dha_deg(donor.xyz_a, h.xyz_a, acceptor.xyz_a)
+                angle = angle_dha_deg(donor.xyz_a, h.xyz_a, acceptor.xyz_a, box)
                 if math.isnan(angle) or angle < min_angle_deg:
                     continue
                 item = (angle, h)
@@ -464,8 +497,11 @@ def collect_hbonds(frame: dict, atoms: List[Atom], max_da_a: float, min_angle_de
                     "acceptor_resid": acceptor.resid,
                     "acceptor_resname": acceptor.resname,
                     "acceptor_atom": acceptor.name,
+                    "bond_context": "intrachain" if donor.chain == acceptor.chain else "interchain",
+                    "sequence_separation": abs(donor.resid - acceptor.resid) if donor.chain == acceptor.chain else np.nan,
                     "da_distance_angstrom": da,
                     "dha_angle_deg": angle,
+                    "periodic_boundary_corrected": True,
                     "best_gro": frame["best_gro"],
                 }
             )
@@ -482,11 +518,15 @@ def summarize_frame(frame: dict, atoms: List[Atom], hbond_df: pd.DataFrame, dihe
         "best_gro": frame["best_gro"],
         "n_collagen_atoms": len(atoms),
         "n_hbonds": len(hbond_df),
+        "n_interchain_hbonds": 0,
+        "n_intrachain_hbonds": 0,
         "mean_hbond_da_angstrom": np.nan,
         "median_hbond_da_angstrom": np.nan,
         "mean_hbond_angle_deg": np.nan,
     }
     if not hbond_df.empty:
+        row["n_interchain_hbonds"] = int((hbond_df["bond_context"] == "interchain").sum())
+        row["n_intrachain_hbonds"] = int((hbond_df["bond_context"] == "intrachain").sum())
         row["mean_hbond_da_angstrom"] = float(hbond_df["da_distance_angstrom"].mean())
         row["median_hbond_da_angstrom"] = float(hbond_df["da_distance_angstrom"].median())
         row["mean_hbond_angle_deg"] = float(hbond_df["dha_angle_deg"].mean())
@@ -522,11 +562,12 @@ def analyze_frames(frame_df: pd.DataFrame, max_da_a: float, min_angle_deg: float
         key = str(input_dir)
         if key not in range_cache:
             range_cache[key] = collagen_chain_ranges(input_dir)
-        atoms = assign_collagen_chains(parse_gro(Path(frame["best_gro"])), range_cache[key])
+        raw_atoms, box = parse_gro(Path(frame["best_gro"]))
+        atoms = assign_collagen_chains(raw_atoms, range_cache[key])
         residues = group_residues(atoms)
         frame_dict = frame.to_dict()
-        hbond_df = collect_hbonds(frame_dict, atoms, max_da_a=max_da_a, min_angle_deg=min_angle_deg, max_dh_a=max_dh_a)
-        dihedral_df = collect_dihedrals(frame_dict, residues)
+        hbond_df = collect_hbonds(frame_dict, atoms, box, max_da_a=max_da_a, min_angle_deg=min_angle_deg, max_dh_a=max_dh_a)
+        dihedral_df = collect_dihedrals(frame_dict, residues, box)
         if not hbond_df.empty:
             hbond_tables.append(hbond_df)
         if not dihedral_df.empty:
@@ -699,8 +740,11 @@ def write_outputs(output_dir: Path, frames: pd.DataFrame, hbonds: pd.DataFrame, 
                 "acceptor_resid",
                 "acceptor_resname",
                 "acceptor_atom",
+                "bond_context",
+                "sequence_separation",
                 "da_distance_angstrom",
                 "dha_angle_deg",
+                "periodic_boundary_corrected",
                 "best_gro",
             ]
         )
