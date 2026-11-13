@@ -1,6 +1,6 @@
 # MMP-1 / Osteogenesis Imperfecta Adaptive Collagen Unwinding
 
-This repository contains prepared GROMACS/OpenMM systems and scripts for adaptive molecular dynamics of human MMP-1 bound to a type-I-collagen-like triple-helical collagen peptide. The scientific aim is to compare wild-type collagen with clinically motivated osteogenesis imperfecta glycine substitutions near the MMP-1 collagenase cleavage region.
+This repository contains prepared GROMACS/OpenMM systems and scripts for adaptive molecular dynamics of human MMP-1 bound to the synthetic homotrimeric model collagen peptide used in PDB 4AUO. The scientific aim is to compare the unmodified model peptide with three single-chain glycine substitutions near its MMP-1 collagenase cleavage region. The peptide is treated as a general model collagen substrate rather than a particular native collagen type. Residue numbers follow the 4AUO model-peptide coordinate register and are not COL1A1 or COL1A2 HGVS positions.
 
 ## Environment
 
@@ -15,7 +15,7 @@ The environment includes OpenMM and the NumPy, pandas, and Matplotlib dependenci
 
 ## Systems
 
-The modeled collagen register follows the 4AUO collagen peptide numbering. The MMP-1 scissile-region glycine is residue 981 in the 4AUO coordinate register. The prepared systems are:
+The modeled collagen register follows the numbering assigned to the 4AUO model collagen peptide in the prepared topology. The peptide contains a collagenase-recognition region and terminal Gly-Pro-Hyp repeats that stabilize its triple-helical structure. The scissile Gly-Leu bond is Gly975-Leu976 in this topology. The analysis window, residues 977-987, corresponds to the P2′-P12′ region; G978S, G984C and G987R are therefore model substitutions at P3′, P9′ and P12′, respectively. They are model-peptide coordinates, not established COL1A1 or COL1A2 clinical-variant coordinates. The prepared systems are:
 
 | System | Mutated chain | Collagen residue change | Input folder |
 |---|---:|---|---|
@@ -285,6 +285,18 @@ complete_structural_analysis/opening_and_mmp1_context/structural_changes_from_ge
 complete_structural_analysis/analysis_manifest.json
 ```
 
+## Peer-review trajectory analysis
+
+`run_peer_review_trajectory_analysis_standalone.py` extends the structural analysis across existing production trajectories. It does not run new molecular dynamics. By default it samples every 200 ps from all workers at generations 0, 10, 20 and 28 and reports chain-resolved opening, hydrogen-bond sensitivity and occupancy, residue-specific dihedral statistics, unique collagen-MMP-1 residue contacts, MMP-domain contacts, catalytic-zinc coordination and scissile-region distances.
+
+When the server is not connected to GitHub, upload this one Python file into the repository root with the SOL web portal and run this single command from the repository root:
+
+```bash
+python run_peer_review_trajectory_analysis_standalone.py --root . --output_dir peer_review_trajectory_analysis
+```
+
+The script creates `peer_review_trajectory_analysis.zip` for download through the web portal. Its default 200 ps sampling interval is intended to make the full four-system analysis practical while retaining worker-level replication. Use `--frame_stride 10` for 100 ps sampling if additional temporal resolution is required.
+
 Create a compact archive containing the CSV data and reproducibility manifest, but no trajectories:
 
 ```bash
@@ -303,6 +315,10 @@ cd mmp1-collagen-oi-adaptive-md
 
 The manuscript is then available under `manuscript/`. Full structural-analysis instructions, including explicit adaptive-run directory options and analysis thresholds, are also retained in [`docs/STRUCTURAL_ANALYSIS.md`](docs/STRUCTURAL_ANALYSIS.md).
 
+## PyMOL open-state scenes
+
+`analysis/pymol_open_state_scripts/all_open_states_standalone.py` is a self-contained PyMOL script containing the wild-type, G978S, G984C and G987R generation-28 selected structures. Run it through PyMOL's **File > Run Script** command. It creates four named scenes with light-grey MMP-1, purple collagen and conventionally coloured residue sticks. The structures are continuous and no periodic or crystallographic copies are generated.
+
 ## Manuscript draft
 
-The current manuscript draft is available in Markdown and PDF under [`manuscript/`](manuscript/). The draft reports the generation-matched unwinding analysis through generation 29 and identifies the structural analyses required for the next revision.
+The current manuscript draft is available in Markdown and PDF under [`manuscript/`](manuscript/). The draft reports the generation-matched opening, structural, hydrogen-bond, backbone-dihedral and MMP-1-contact analyses through generation 28.

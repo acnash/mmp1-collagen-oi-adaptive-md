@@ -58,6 +58,8 @@ SYSTEMS = {
 BACKBONE_ATOMS = {"N", "CA", "C"}
 DONOR_HEAVY_PREFIXES = ("N", "O", "S")
 ACCEPTOR_PREFIXES = ("O", "S")
+WINDOW_RESNAMES = ["ALA", "GLY", "GLN", "ARG", "GLY", "ILE", "VAL", "GLY", "LEU", "HYP", "GLY"]
+MUTATIONS = {"G978S": (1, "SER"), "G984C": (7, "CYS"), "G987R": (10, "ARG")}
 
 
 @dataclass
@@ -239,6 +241,20 @@ def atom_count_from_itp(path: Path) -> int:
     return count
 
 
+def molecule_name_from_itp(path: Path) -> Optional[str]:
+    in_moleculetype = False
+    for line in path.read_text(errors="ignore").splitlines():
+        s = line.strip()
+        if not s or s.startswith(";"):
+            continue
+        if s.startswith("["):
+            in_moleculetype = s.lower().startswith("[ moleculetype")
+            continue
+        if in_moleculetype:
+            return s.split()[0]
+    return None
+
+
 def molecule_lines(system_top: Path) -> List[Tuple[str, int]]:
     lines = []
     in_molecules = False
@@ -261,7 +277,9 @@ def collagen_chain_ranges(input_dir: Path) -> Dict[str, Tuple[int, int, str]]:
     for itp in input_dir.glob("*.itp"):
         if itp.name in {"forcefield.itp", "ffbonded.itp", "ffnonbonded.itp", "tip3p.itp", "ions.itp"}:
             continue
-        counts[itp.stem] = atom_count_from_itp(itp)
+        molecule_name = molecule_name_from_itp(itp)
+        if molecule_name:
+            counts[molecule_name] = atom_count_from_itp(itp)
     ranges = {}
     current = 1
     chain_i = 0
@@ -272,7 +290,7 @@ def collagen_chain_ranges(input_dir: Path) -> Dict[str, Tuple[int, int, str]]:
         for _ in range(mol_count):
             start = current
             end = current + atom_count - 1
-            if mol_name.startswith("collagen"):
+            if mol_name.lower().startswith("collagen"):
                 chain_i += 1
                 ranges[f"chain_{chain_i}"] = (start, end, mol_name)
             current = end + 1
@@ -353,6 +371,21 @@ def group_residues(atoms: Iterable[Atom]) -> Dict[str, List[List[Atom]]]:
             residues.append(current)
         chains[chain] = residues
     return chains
+
+
+def validate_collagen_identity(system: str, residues_by_chain: Dict[str, List[List[Atom]]]) -> None:
+    for chain, residues in residues_by_chain.items():
+        expected = list(WINDOW_RESNAMES)
+        if chain == "chain_1" and system in MUTATIONS:
+            index, replacement = MUTATIONS[system]
+            expected[index] = replacement
+        names = [residue[0].resname for residue in residues if residue]
+        found = any(names[i : i + len(expected)] == expected for i in range(len(names) - len(expected) + 1))
+        if not found:
+            raise RuntimeError(
+                f"Collagen identity validation failed for {system} {chain}: "
+                "the expected residues 977-987 sequence was not found."
+            )
 
 
 def atom_by_name(residue_atoms: List[Atom], name: str) -> Optional[Atom]:
@@ -565,6 +598,7 @@ def analyze_frames(frame_df: pd.DataFrame, max_da_a: float, min_angle_deg: float
         raw_atoms, box = parse_gro(Path(frame["best_gro"]))
         atoms = assign_collagen_chains(raw_atoms, range_cache[key])
         residues = group_residues(atoms)
+        validate_collagen_identity(str(frame["system"]), residues)
         frame_dict = frame.to_dict()
         hbond_df = collect_hbonds(frame_dict, atoms, box, max_da_a=max_da_a, min_angle_deg=min_angle_deg, max_dh_a=max_dh_a)
         dihedral_df = collect_dihedrals(frame_dict, residues, box)
