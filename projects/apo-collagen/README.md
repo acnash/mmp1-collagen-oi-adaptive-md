@@ -38,12 +38,15 @@ causal mechanism for OI pathology.
 
 ## Reproducibility resources
 
+- [Prepared MMP-1-free structures and force-field inputs](../../generated_mutants/mmp1_free_150mM_NaCl/)
+- [Self-contained nine-job Sol production bundle](../../MMP1_apo_Sol_1us_200ps/)
 - [Prepare the MMP-1-free systems](../../scripts/prepare_mmp1_free_collagen.py)
 - [Run staged equilibration](../../scripts/run_mmp1_free_collagen_equilibration.py)
 - [Run local unrestrained continuation](../../scripts/run_mmp1_free_5ns_production.py)
 - [Audit the equilibrated replicas](../../scripts/audit_mmp1_free_equilibration.py)
 - [Build the explicit Sol production bundle](../../scripts/build_mmp1_apo_sol_1us_package.py)
 
-Large trajectories and server-output snapshots are excluded from the public Git
-repository. Portable preparation scripts, topology records, checksums and
-analysis code should accompany a formal data release.
+The repository contains the coordinates, velocities, topologies, force-field
+includes, checksums and execution files needed to reproduce and continue all
+nine simulations. Generated trajectories and server-output snapshots are
+excluded from Git and should accompany a formal research-data release.

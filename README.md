@@ -102,9 +102,10 @@ review. It is provided to make the analysis and interpretation transparent.
 |---|---|
 | `projects/mmp1-bound-adaptive/` | Scientific overview of the MMP-1-bound adaptive programme |
 | `projects/apo-collagen/` | Scientific overview of the MMP-1-free conventional-MD programme |
+| `MMP1_apo_Sol_1us_200ps/` | Self-contained nine-job Sol production bundle, including portable states and force-field files |
 | `scripts/` | OpenMM preparation, simulation and monitoring scripts |
 | `analysis/` | Structural-analysis and figure-generation code |
-| `generated_mutants/` | Prepared model systems and topology files |
+| `generated_mutants/` | Prepared MMP-1-bound and MMP-1-free model systems, coordinates and topology files |
 | `docs/` | Detailed methods, workflow references and attribution |
 | `manuscript/` | Working manuscript, figures and supporting material |
 | `publications/` | Publication status and links |

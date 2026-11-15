@@ -8,7 +8,7 @@ output/
 source_material/
 tmp/
 
-# Large local trajectories, checkpoints and generated upload bundles
+# Large local trajectories, checkpoints and generated upload archives
 *.dcd
 *.xtc
 *.trr
@@ -17,6 +17,4 @@ slurm-*.out
 slurm-*.err
 mmp1_free_conventional_md/
 mmp1_free_5ns_production/
-MMP1_apo_Sol_1us_200ps/
 UPLOAD_MMP1_APO_SOL_1US/
-generated_mutants/mmp1_free_150mM_NaCl/

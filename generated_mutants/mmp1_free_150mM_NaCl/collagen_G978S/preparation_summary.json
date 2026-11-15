@@ -1,0 +1,18 @@
+{
+  "variant": "G978S",
+  "source_gro": "C:\\Users\\Anthony\\OneDrive\\Documents\\ChatGPT\\MMP-1 Unwinding\\generated_mutants\\salted_150mM_NaCl\\collagen_G978S\\NPT_eq_collagen_G978S_150mM_NaCl.gro",
+  "output_gro": "C:\\Users\\Anthony\\OneDrive\\Documents\\ChatGPT\\MMP-1 Unwinding\\generated_mutants\\mmp1_free_150mM_NaCl\\collagen_G978S\\MMP1_free_G978S_150mM_NaCl_start.gro",
+  "mmp1_atoms_removed": 5825,
+  "collagen_atoms": 1333,
+  "collagen_charge_e": 6,
+  "box_volume_nm3": 636.0714773538989,
+  "target_nacl_molar": 0.15,
+  "nacl_pairs": 57,
+  "water_molecules": 20026,
+  "sodium_ions": 57,
+  "chloride_ions": 63,
+  "net_charge_e": 0,
+  "periodic_collagen_topology_retained": true,
+  "fresh_tip3p_resolvation": true,
+  "ion_site_seed": 20261114
+}

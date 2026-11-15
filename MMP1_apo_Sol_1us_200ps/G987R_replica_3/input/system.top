@@ -1,0 +1,17 @@
+#include "forcefield.itp"
+
+#include "collagen_G987R.itp"
+#include "collagen.itp"
+
+#include "tip3p.itp"
+#include "ions.itp"
+
+[ system ]
+MMP-1-free periodic mutant collagen in 150 mM NaCl
+
+[ molecules ]
+collagen_G987R       1
+collagen             2
+SOL                  20025
+NA                   57
+CL                   64
