@@ -27,10 +27,18 @@ def main() -> None:
     args = parser.parse_args()
 
     selected = pd.read_csv(args.selected_frames)
+    selected = selected.rename(
+        columns={"generation": "generation_index", "best_score_angstrom": "opening_score_angstrom"}
+    )
     selected = selected[selected["generation_index"].between(0, ENDPOINT)]
     workers = pd.read_csv(args.worker_maxima)
+    workers = workers.rename(columns={"max_opening_score_angstrom": "maximum_opening_score_angstrom"})
     workers = workers[workers["generation_index"] == ENDPOINT]
 
+    # Figure 5 establishes the manuscript's effective printed type size.  Figure
+    # 1 is wider, so its source type must be larger to remain comparable after
+    # both figures are scaled to the same manuscript width.
+    plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 12.0})
     fig, axes = plt.subplots(1, 2, figsize=(10.2, 4.35), gridspec_kw={"width_ratios": [1.55, 1.0]})
     for system in SYSTEM_ORDER:
         group = selected[selected["system"] == system].sort_values("generation_index")
@@ -46,7 +54,7 @@ def main() -> None:
     axes[0].set_xlim(-0.5, ENDPOINT + 0.5)
     axes[0].set_xlabel("Adaptive generation")
     axes[0].set_ylabel("Selected opening score (Å)")
-    axes[0].legend(frameon=False, ncol=2, loc="upper left")
+    axes[0].legend(frameon=False, ncol=2, loc="upper left", fontsize=12.0)
 
     values = [
         workers.loc[workers["system"] == system, "maximum_opening_score_angstrom"].dropna().to_numpy()
@@ -68,7 +76,7 @@ def main() -> None:
     axes[1].tick_params(axis="x", rotation=18)
 
     for letter, axis in zip(("A)", "B)"), axes):
-        axis.text(-0.12, 1.04, letter, transform=axis.transAxes, fontweight="bold", fontsize=12)
+        axis.text(-0.12, 1.04, letter, transform=axis.transAxes, fontweight="bold", fontsize=15)
         axis.grid(axis="y", color="#D8D8D8", linewidth=0.6)
         axis.spines[["top", "right"]].set_visible(False)
 

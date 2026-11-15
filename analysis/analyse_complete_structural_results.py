@@ -180,7 +180,9 @@ def plot_generation_metrics(combined: pd.DataFrame, output: Path) -> None:
         ("mean_window_triangle_area_angstrom2", "Mean Cα triangle area (Å²)", "C)"),
         ("window_mmp1_heavy_atom_contact_pairs", "MMP-1 heavy-atom contact pairs", "D)"),
     ]
-    fig, axes = plt.subplots(2, 2, figsize=(10.0, 7.5), constrained_layout=True)
+    # Match Figure 5's effective typography when reproduced at manuscript width.
+    plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 10.0})
+    fig, axes = plt.subplots(2, 2, figsize=(8.6, 6.45), constrained_layout=True)
     for axis, (metric, ylabel, letter) in zip(axes.flat, panels):
         for system in SYSTEM_ORDER:
             group = combined[combined["system"] == system].sort_values("generation_index")
@@ -195,7 +197,7 @@ def plot_generation_metrics(combined: pd.DataFrame, output: Path) -> None:
             )
         style_axes(axis, ylabel)
         axis.text(-0.12, 1.04, letter, transform=axis.transAxes, fontweight="bold", fontsize=12)
-    axes[0, 0].legend(frameon=False, ncol=2, fontsize=9)
+    axes[0, 0].legend(frameon=False, ncol=2, fontsize=10)
     fig.savefig(output, dpi=300, bbox_inches="tight")
     plt.close(fig)
 
@@ -210,7 +212,9 @@ def plot_residue_changes(geometry: pd.DataFrame, contacts: pd.DataFrame, output:
     con = contact_ep.pivot_table(index=["system", "residue_position"], columns="generation_index", values="heavy_atom_contact_pairs").reset_index()
     con["change"] = con[COMMON_MAX_GENERATION] - con[0]
 
-    fig, axes = plt.subplots(2, 1, figsize=(9.5, 7.5), sharex=True, constrained_layout=True)
+    # Use the same physical plot proportions and base type size as Figure 5.
+    plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 8.5})
+    fig, axes = plt.subplots(2, 1, figsize=(7.2, 5.7), sharex=True, constrained_layout=True)
     for system in SYSTEM_ORDER:
         g = geom[geom["system"] == system]
         c = con[con["system"] == system]
@@ -225,9 +229,9 @@ def plot_residue_changes(geometry: pd.DataFrame, contacts: pd.DataFrame, output:
     axes[1].spines[["top", "right"]].set_visible(False)
     axes[0].grid(axis="y", color="#D9D9D9", linewidth=0.6, alpha=0.7)
     axes[1].grid(axis="y", color="#D9D9D9", linewidth=0.6, alpha=0.7)
-    axes[0].legend(frameon=False, ncol=4, fontsize=9)
-    axes[0].text(-0.09, 1.04, "A)", transform=axes[0].transAxes, fontweight="bold", fontsize=12)
-    axes[1].text(-0.09, 1.04, "B)", transform=axes[1].transAxes, fontweight="bold", fontsize=12)
+    axes[0].legend(frameon=False, ncol=4, fontsize=8.5)
+    axes[0].text(-0.09, 1.04, "A)", transform=axes[0].transAxes, fontweight="bold", fontsize=11)
+    axes[1].text(-0.09, 1.04, "B)", transform=axes[1].transAxes, fontweight="bold", fontsize=11)
     axes[1].set_xticks(range(977, 988))
     fig.savefig(output, dpi=300, bbox_inches="tight")
     plt.close(fig)

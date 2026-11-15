@@ -16,6 +16,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     Image,
+    KeepTogether,
     Paragraph,
     SimpleDocTemplate,
     Spacer,
@@ -27,14 +28,29 @@ from reportlab.platypus import (
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "manuscript" / "MMP1_collagen_OI_adaptive_unwinding_manuscript.md"
 OUTPUT = ROOT / "manuscript" / "MMP1_collagen_OI_adaptive_unwinding_manuscript.pdf"
-FONT_ROOT = Path("/System/Library/Fonts/Supplemental")
-
-
 def register_fonts() -> None:
-    pdfmetrics.registerFont(TTFont("TimesNR", FONT_ROOT / "Times New Roman.ttf"))
-    pdfmetrics.registerFont(TTFont("TimesNR-Bold", FONT_ROOT / "Times New Roman Bold.ttf"))
-    pdfmetrics.registerFont(TTFont("TimesNR-Italic", FONT_ROOT / "Times New Roman Italic.ttf"))
-    pdfmetrics.registerFont(TTFont("TimesNR-BoldItalic", FONT_ROOT / "Times New Roman Bold Italic.ttf"))
+    candidates = [
+        (
+            Path("C:/Windows/Fonts/times.ttf"),
+            Path("C:/Windows/Fonts/timesbd.ttf"),
+            Path("C:/Windows/Fonts/timesi.ttf"),
+            Path("C:/Windows/Fonts/timesbi.ttf"),
+        ),
+        (
+            Path("/System/Library/Fonts/Supplemental/Times New Roman.ttf"),
+            Path("/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf"),
+            Path("/System/Library/Fonts/Supplemental/Times New Roman Italic.ttf"),
+            Path("/System/Library/Fonts/Supplemental/Times New Roman Bold Italic.ttf"),
+        ),
+    ]
+    font_paths = next((paths for paths in candidates if all(path.exists() for path in paths)), None)
+    if font_paths is None:
+        raise FileNotFoundError("Times New Roman font files were not found on this system")
+    regular, bold, italic, bold_italic = font_paths
+    pdfmetrics.registerFont(TTFont("TimesNR", regular))
+    pdfmetrics.registerFont(TTFont("TimesNR-Bold", bold))
+    pdfmetrics.registerFont(TTFont("TimesNR-Italic", italic))
+    pdfmetrics.registerFont(TTFont("TimesNR-BoldItalic", bold_italic))
     pdfmetrics.registerFontFamily(
         "TimesNR",
         normal="TimesNR",
@@ -136,25 +152,28 @@ def styles() -> dict[str, ParagraphStyle]:
     }
 
 
-def add_figure(story: list, markdown_line: str, source_dir: Path) -> None:
+def figure_flowables(markdown_line: str, source_dir: Path) -> list:
     match = re.match(r"!\[[^\]]*\]\(([^)]+)\)", markdown_line)
     if not match:
-        return
+        return []
     path = (source_dir / match.group(1)).resolve()
     image = Image(str(path))
     max_width = 170 * mm
     max_height = 198 * mm
     if path.name == "figure_structural_metrics_by_generation.png":
-        max_width = 150 * mm
-        max_height = 113 * mm
+        max_width = 170 * mm
+        max_height = 128 * mm
+    elif path.name == "figure_generation_28_structures.png":
+        max_width = 170 * mm
+        max_height = 130 * mm
     elif path.name == "figure_residue_resolved_structural_changes.png":
-        max_width = 102 * mm
-        max_height = 80 * mm
+        max_width = 170 * mm
+        max_height = 130 * mm
     scale = min(max_width / image.imageWidth, max_height / image.imageHeight)
     image.drawWidth = image.imageWidth * scale
     image.drawHeight = image.imageHeight * scale
     image.hAlign = "CENTER"
-    story.extend([Spacer(1, 2 * mm), image])
+    return [Spacer(1, 2 * mm), image]
 
 
 def parse_table(lines: list[str], index: int, style_map: dict[str, ParagraphStyle]) -> tuple[Table, int]:
@@ -202,7 +221,7 @@ def footer(canvas, document) -> None:
     canvas.saveState()
     canvas.setFont("TimesNR", 8)
     canvas.setFillColor(colors.HexColor("#555555"))
-    canvas.drawString(20 * mm, 12 * mm, "MMP-1 collagen local opening")
+    canvas.drawString(20 * mm, 12 * mm, "OI-associated collagen packing fragility")
     canvas.drawRightString(A4[0] - 20 * mm, 12 * mm, str(document.page))
     canvas.restoreState()
 
@@ -226,7 +245,16 @@ def build() -> None:
         elif line.startswith("### "):
             story.append(Paragraph(inline_markup(line[4:]), style_map["h2"]))
         elif line.startswith("!["):
-            add_figure(story, line, SOURCE.parent)
+            items = figure_flowables(line, SOURCE.parent)
+            caption_index = index + 1
+            while caption_index < len(lines) and not lines[caption_index].strip():
+                caption_index += 1
+            if caption_index < len(lines):
+                caption_line = lines[caption_index].strip()
+                if caption_line.startswith("*") and caption_line.endswith("*") and caption_line[1:-1].startswith("Figure"):
+                    items.append(Paragraph(inline_markup(caption_line[1:-1]), style_map["caption"]))
+                    index = caption_index
+            story.append(KeepTogether(items))
         elif line.startswith("|"):
             table, index = parse_table(lines, index, style_map)
             story.extend([table, Spacer(1, 1.5 * mm)])
@@ -248,7 +276,7 @@ def build() -> None:
         leftMargin=20 * mm,
         topMargin=18 * mm,
         bottomMargin=19 * mm,
-        title="Glycine substitutions reveal sequence-encoded local triple-helix weakness in an MMP-1-bound synthetic model collagen homotrimer",
+        title="Osteogenesis imperfecta-associated glycine substitutions encode mutation-dependent local triple-helix fragility in MMP-1-bound model collagen",
         author="Anthony Nash; Chase Harms; Susanta K Sarkar",
         subject="Adaptive atomistic molecular dynamics manuscript",
     )

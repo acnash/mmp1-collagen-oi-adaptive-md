@@ -1,324 +1,132 @@
-# MMP-1 / Osteogenesis Imperfecta Adaptive Collagen Unwinding
+# Collagen remodelling in osteogenesis imperfecta
 
-This repository contains prepared GROMACS/OpenMM systems and scripts for adaptive molecular dynamics of human MMP-1 bound to the synthetic homotrimeric model collagen peptide used in PDB 4AUO. The scientific aim is to compare the unmodified model peptide with three single-chain glycine substitutions near its MMP-1 collagenase cleavage region. The peptide is treated as a general model collagen substrate rather than a particular native collagen type. Residue numbers follow the 4AUO model-peptide coordinate register and are not COL1A1 or COL1A2 HGVS positions.
+This repository is a computational research programme examining how
+triple-helix-disrupting collagen substitutions alter collagen structure and its
+interaction with matrix metalloproteinase-1 (MMP-1).
 
-## Environment
+The work is motivated by **osteogenesis imperfecta (OI)**, a genetically and
+clinically heterogeneous group of connective-tissue disorders characterised by
+bone fragility. Many forms involve quantitative or qualitative abnormalities in
+type I collagen. Radiographic findings vary with subtype and severity, but can
+include reduced mineral density, recurrent fractures, healing callus, long-bone
+bowing and progressive skeletal deformity.
 
-Create the documented `openmm` Conda environment from the repository root:
+<p align="center">
+  <img src="docs/assets/oi_radiograph.jpg" width="420" alt="Radiograph of an infant with multiple fractures and bowing of long bones" />
+</p>
+
+<p align="center"><sub>
+Radiograph illustrating one severe presentation of OI. This image is not
+representative of every OI subtype. Image: Ali zeki, CC BY 4.0; full attribution
+is provided in <a href="docs/IMAGE_CREDITS.md">IMAGE_CREDITS.md</a>.
+</sub></p>
+
+## Research hypothesis
+
+We hypothesise that glycine substitutions capable of destabilising local
+triple-helical packing can change the structural accessibility of
+collagenase-sensitive regions and thereby alter MMP-1-mediated collagen
+remodelling.
+
+This is a **mechanistic hypothesis**, not an established disease mechanism. The
+present simulations do not demonstrate that altered MMP-1 activity causes the
+clinical pathology of OI. Abnormal remodelling could contribute to disease,
+have little causal relevance, or form part of a compensatory response. The
+programme is designed to distinguish structural observations from those larger
+causal claims.
+
+## Two complementary simulation programmes
+
+### 1. MMP-1-bound adaptive sampling
+
+The first programme examines wild-type and substituted model collagen in the
+presence of MMP-1. Adaptive sampling enriches locally opened conformations near
+the collagenase-recognition region and asks how readily each model system can
+access those structures.
+
+- [Programme overview](projects/mmp1-bound-adaptive/README.md)
+- [Detailed workflow reference](docs/ADAPTIVE_WORKFLOW_REFERENCE.md)
+- [Structural-analysis methods](docs/STRUCTURAL_ANALYSIS.md)
+
+<p align="center">
+  <img src="manuscript/figures/figure_adaptive_unwinding_progression.png" width="850" alt="Adaptive collagen-opening progression for wild-type and substituted systems" />
+</p>
+
+Adaptive sampling deliberately favours a chosen structural coordinate. It is
+therefore useful for comparing accessible opening pathways, but it does not by
+itself provide an unbiased equilibrium population or a spontaneous unwinding
+rate.
+
+### 2. MMP-1-free apo-collagen simulations
+
+The second programme removes MMP-1 and uses conventional, unbiased molecular
+dynamics. Three independent replicas of each substituted collagen system were
+prepared with distinct velocities and continued into long-timescale production
+simulations. This tests whether local opening is populated without enzyme
+binding and without adaptive selection.
+
+- [Programme overview](projects/apo-collagen/README.md)
+
+A matched wild-type apo ensemble is required before any opening difference can
+be attributed specifically to a substitution rather than to the baseline
+dynamics of the model collagen peptide.
+
+## Model scope and limitations
+
+The simulated substrate is the synthetic homotrimeric model collagen peptide
+used in the MMP-1 complex represented by PDB 4AUO. It is not full-length native
+human type I collagen, which is normally a heterotrimer, and its residue numbers
+are model-peptide coordinates rather than `COL1A1` or `COL1A2` HGVS positions.
+
+The G978S, G984C and G987R substitutions are controlled model perturbations used
+to examine the structural consequences of replacing glycine within a collagen
+triple helix. They should not be described as direct simulations of particular
+patient variants without an explicit sequence mapping and clinical annotation.
+
+Additional limitations include finite peptide length, force-field and water-model
+approximations, limited sampling, and the distinction between molecular opening,
+matrix remodelling and organism-level disease.
+
+## Publications
+
+The current manuscript is a **working draft** and has not yet completed peer
+review. It is provided to make the analysis and interpretation transparent.
+
+- [Publication record and status](publications/README.md)
+- [Read the manuscript in Markdown](manuscript/MMP1_collagen_OI_adaptive_unwinding_manuscript.md)
+- [Download the manuscript PDF](manuscript/MMP1_collagen_OI_adaptive_unwinding_manuscript.pdf)
+
+## Repository map
+
+| Path | Purpose |
+|---|---|
+| `projects/mmp1-bound-adaptive/` | Scientific overview of the MMP-1-bound adaptive programme |
+| `projects/apo-collagen/` | Scientific overview of the MMP-1-free conventional-MD programme |
+| `scripts/` | OpenMM preparation, simulation and monitoring scripts |
+| `analysis/` | Structural-analysis and figure-generation code |
+| `generated_mutants/` | Prepared model systems and topology files |
+| `docs/` | Detailed methods, workflow references and attribution |
+| `manuscript/` | Working manuscript, figures and supporting material |
+| `publications/` | Publication status and links |
+
+Large production trajectories are not intended for Git storage. They should be
+deposited in an appropriate research-data archive with checksums, metadata and a
+persistent identifier when the study is released.
+
+## Reproducibility
+
+Create the documented OpenMM environment from the repository root:
 
 ```bash
 conda env create -f environment.yml
 conda activate openmm
 ```
 
-The environment includes OpenMM and the NumPy, pandas, and Matplotlib dependencies used by the simulation, monitoring, and structural-report scripts. GPU execution additionally requires a compatible NVIDIA driver on the host system.
+The programme uses explicit periodic-boundary handling and retains complete
+topology, preparation and analysis records. Study-specific commands are given in
+the two programme overviews and in the detailed workflow documents.
 
-## Systems
+## Project status
 
-The modeled collagen register follows the numbering assigned to the 4AUO model collagen peptide in the prepared topology. The peptide contains a collagenase-recognition region and terminal Gly-Pro-Hyp repeats that stabilize its triple-helical structure. The scissile Gly-Leu bond is Gly975-Leu976 in this topology. The analysis window, residues 977-987, corresponds to the P2′-P12′ region; G978S, G984C and G987R are therefore model substitutions at P3′, P9′ and P12′, respectively. They are model-peptide coordinates, not established COL1A1 or COL1A2 clinical-variant coordinates. The prepared systems are:
-
-| System | Mutated chain | Collagen residue change | Input folder |
-|---|---:|---|---|
-| `wild_type` | none | none | `generated_mutants/salted_150mM_NaCl/wild_type/` |
-| `G978S` | chain 1 | `GLY978 -> SER978` | `generated_mutants/salted_150mM_NaCl/collagen_G978S/` |
-| `G984C` | chain 1 | `GLY984 -> CYS984` | `generated_mutants/salted_150mM_NaCl/collagen_G984C/` |
-| `G987R` | chain 1 | `GLY987 -> ARG987` | `generated_mutants/salted_150mM_NaCl/collagen_G987R/` |
-
-Each system directory contains a complete local GROMACS include set:
-
-```text
-system.top
-topol_MMP1_active.itp
-collagen.itp
-collagen_G*.itp       # mutant systems only
-forcefield.itp
-ffbonded.itp
-ffnonbonded.itp
-tip3p.itp
-ions.itp
-*.gro
-```
-
-Position-restraint include calls have been removed from the committed `system.top` files. Restraints should be added programmatically in OpenMM workflows when needed.
-
-## Salt And Charge
-
-The systems were salted to a target of 150 mM NaCl by replacing water molecules with ions. For this box volume, that corresponds to 57 NaCl pairs. Existing neutralizing chloride ions were preserved.
-
-Final molecule counts:
-
-| System | SOL | NA | CL | Net charge |
-|---|---:|---:|---:|---:|
-| `wild_type` | 18745 | 57 | 67 | ~0 |
-| `G978S` | 18745 | 57 | 67 | ~0 |
-| `G984C` | 18745 | 57 | 67 | ~0 |
-| `G987R` | 18744 | 57 | 68 | ~0 |
-
-## OpenMM Validation Runs
-
-Short validation runs were attempted locally in the `kcc2` conda environment using OpenMM CPU platform with 8 CPU threads. The protocol was:
-
-```text
-energy minimization
-10 ps NVT
-10 ps NPT
-```
-
-The original 2 fs startup was unstable for `G978S`, so validation was repeated with a 0.5 fs timestep. That protocol completed successfully for `G978S`.
-
-Validated output:
-
-```text
-generated_mutants/salted_150mM_NaCl/collagen_G978S/
-  NPT_eq_collagen_G978S_150mM_NaCl_openmm_10ps_npt.gro
-  openmm_validation/
-    G978S_after_minimization.gro
-    G978S_after_10ps_nvt.gro
-    NPT_eq_collagen_G978S_150mM_NaCl_openmm_10ps_npt.gro
-    nvt.log
-    npt.log
-    summary.json
-```
-
-Initial `G984C` and `G987R` structures did not pass the same validation. Both developed NaN coordinates during NVT. Additional diagnostics showed:
-
-```text
-G984C: failed during NVT at 0.5 fs; also failed at 10 K / 0.1 fs.
-G987R: failed during NVT at 0.5 fs; also failed at 10 K / 0.1 fs.
-```
-
-Those systems were later rescued by a more aggressive OpenMM-only relaxation campaign followed by 10 ps NVT and 10 ps NPT at 312.5 K with a 2 fs timestep. Final velocity-bearing structures are committed for the three mutant systems:
-
-```text
-generated_mutants/salted_150mM_NaCl/collagen_G978S/
-  NPT_eq_collagen_G978S_150mM_NaCl_openmm_10ps_nvt_10ps_npt_with_velocities.gro
-
-generated_mutants/salted_150mM_NaCl/collagen_G984C/
-  NPT_eq_collagen_G984C_150mM_NaCl_openmm_10ps_nvt_10ps_npt_with_velocities.gro
-
-generated_mutants/salted_150mM_NaCl/collagen_G987R/
-  NPT_eq_collagen_G987R_150mM_NaCl_openmm_10ps_nvt_10ps_npt_with_velocities.gro
-```
-
-Validation scripts:
-
-```text
-scripts/openmm_validate_mutants.py
-scripts/openmm_diagnose_mutant.py
-```
-
-Example validation command:
-
-```bash
-conda run -n kcc2 python scripts/openmm_validate_mutants.py \
-  --threads 8 \
-  --timestep_ps 0.0005 \
-  --variants G978S G984C G987R
-```
-
-## Adaptive Unwinding Runner
-
-The adaptive runner is:
-
-```text
-scripts/adaptive_mmp1_unwinding_dual_worker.py
-```
-
-It launches generations of independent OpenMM workers. Generation 0 performs minimization, NVT, NPT, and production MD. Later generations use single-parent conformational seeding: the highest-opening parent frame seeds all workers in the next generation, using kinetic-energy-matched stochastic velocity reinitialisation. During production, a PBC-corrected collagen-opening metric is reported.
-
-The opening metric uses residues 977-987 from all three collagen chains. For each residue position, it measures all three pairwise C-alpha distances between collagen chains using minimum-image periodic distances. The score is the mean of 33 distances:
-
-```text
-11 residue positions x 3 inter-chain distances = 33 distances
-```
-
-The runner is now system-aware:
-
-```bash
---system_variant wild_type|G978S|G984C|G987R
---input_gro <coordinate.gro>
---input_top system.top
-```
-
-Fresh run directories include the variant label:
-
-```text
-adaptive_run_wild_type_YYYYMMDD_HHMMSS
-adaptive_run_G978S_YYYYMMDD_HHMMSS
-adaptive_run_G984C_YYYYMMDD_HHMMSS
-adaptive_run_G987R_YYYYMMDD_HHMMSS
-```
-
-The runner validates that the opening-score window contains 33 CA atoms across the three collagen chains and that the expected mutation is present on chain 1 only.
-
-## SLURM Launchers
-
-Use the system-specific launchers:
-
-```bash
-cd /scratch/anash19/mmp1-collagen-oi-adaptive-md
-sbatch scripts/run-unwinding-wild_type.sh
-sbatch scripts/run-unwinding-G978S.sh
-sbatch scripts/run-unwinding-G984C.sh
-sbatch scripts/run-unwinding-G987R.sh
-```
-
-Each launcher is deliberately explicit: it loads the `mamba` module, activates the `openmm` environment, changes into `/scratch/anash19/mmp1-collagen-oi-adaptive-md`, then runs one `python scripts/adaptive_mmp1_unwinding_dual_worker.py ...` command.
-
-The generic template is also available:
-
-```bash
-cd /scratch/anash19/mmp1-collagen-oi-adaptive-md
-sbatch scripts/run-unwinding.sh
-```
-
-For the generic template, edit `SYSTEM_VARIANT`, `INPUT_DIR`, and `INPUT_GRO` together near the top of the file:
-
-```bash
-SYSTEM_VARIANT="wild_type"
-INPUT_DIR="generated_mutants/salted_150mM_NaCl/wild_type"
-INPUT_GRO="NPT_eq_wild_type_150mM_NaCl.gro"
-```
-
-Each bespoke launcher has unique SLURM job, stdout, and stderr names. The mutant launchers use the final 10 ps NVT + 10 ps NPT velocity-bearing `.gro` files as their fresh-run inputs.
-
-## Joint Unwinding Monitor
-
-The joint unwinding monitor is:
-
-```text
-scripts/monitor_collagen_unwinding_progress.py
-```
-
-It reads only the adaptive runner's unwinding outputs: per-worker `opening_scores.csv`, `worker.json`, and per-generation `generation.json`. It does not perform structural clustering, contact analysis, hydrogen-bond analysis, PCA, or trajectory reanalysis.
-
-From the repository root, it can auto-detect the newest adaptive run for wild type and the three OI mutants:
-
-```bash
-python scripts/monitor_collagen_unwinding_progress.py \
-  --root . \
-  --analysis_dir joint_unwinding_report
-```
-
-For explicit resumed campaigns, pass the four run directories:
-
-```bash
-python scripts/monitor_collagen_unwinding_progress.py \
-  --wild_type_run generated_mutants/salted_150mM_NaCl/wild_type/adaptive_run_wild_type_YYYYMMDD_HHMMSS \
-  --g978s_run generated_mutants/salted_150mM_NaCl/collagen_G978S/adaptive_run_G978S_YYYYMMDD_HHMMSS \
-  --g984c_run generated_mutants/salted_150mM_NaCl/collagen_G984C/adaptive_run_G984C_YYYYMMDD_HHMMSS \
-  --g987r_run generated_mutants/salted_150mM_NaCl/collagen_G987R/adaptive_run_G987R_YYYYMMDD_HHMMSS \
-  --analysis_dir joint_unwinding_report
-```
-
-The default PDF is `joint_unwinding_report/joint_collagen_unwinding_progress_report.pdf`. The monitor also writes joint frame, worker, generation, and latest-generation CSV summaries. For independent plotting, it writes `best_worker_unwinding_by_generation.csv` with five columns: generation, wild type, G978S, G984C, and G987R best-worker opening scores.
-
-## Joint Structural Report
-
-The structural report script is:
-
-```text
-scripts/report_collagen_structural_metrics.py
-```
-
-It uses the best worker/frame selected for each adaptive generation and analyzes collagen only. It reports hydrogen-bond distributions, backbone `phi`/`psi`/`omega` dihedral distributions, and plots structural metrics against the PBC-corrected unwinding score.
-
-Run it from the repository root with auto-detected newest runs:
-
-```bash
-python scripts/report_collagen_structural_metrics.py \
-  --root . \
-  --analysis_dir joint_structural_report
-```
-
-For explicit resumed campaigns:
-
-```bash
-python scripts/report_collagen_structural_metrics.py \
-  --wild_type_run generated_mutants/salted_150mM_NaCl/wild_type/adaptive_run_wild_type_YYYYMMDD_HHMMSS \
-  --g978s_run generated_mutants/salted_150mM_NaCl/collagen_G978S/adaptive_run_G978S_YYYYMMDD_HHMMSS \
-  --g984c_run generated_mutants/salted_150mM_NaCl/collagen_G984C/adaptive_run_G984C_YYYYMMDD_HHMMSS \
-  --g987r_run generated_mutants/salted_150mM_NaCl/collagen_G987R/adaptive_run_G987R_YYYYMMDD_HHMMSS \
-  --analysis_dir joint_structural_report
-```
-
-The default PDF is `joint_structural_report/joint_collagen_structural_report.pdf`. CSV outputs include `structural_best_frames.csv`, `structural_generation_summary.csv`, `structural_hydrogen_bonds.csv`, and `structural_backbone_dihedrals.csv`.
-
-## Compact Structural Analysis
-
-The compact structural analysis reads only the selected `best_opening_frame.gro` from each completed generation. It does not read or transfer trajectory files. It reports residue-resolved three-chain opening geometry, local collagen radius of gyration, aligned change from generation 0, and MMP-1 heavy-atom contacts:
-
-```bash
-python scripts/analyse_collagen_unwinding_structures.py \
-  --root . \
-  --analysis_dir compact_structural_analysis
-```
-
-The four CSV outputs are `residue_resolved_opening_geometry.csv`, `residue_resolved_mmp1_contacts.csv`, `structural_frame_summary.csv`, and `structural_changes_from_generation_zero.csv`.
-
-## Complete Structural Analysis
-
-The complete workflow calculates periodic-boundary-corrected collagen hydrogen bonds, interchain and intrachain bond counts, backbone dihedrals, residue-resolved opening geometry and MMP-1 contact context. It reads selected `best_opening_frame.gro` structures only and does not read or transfer trajectories.
-
-On the simulation server, update the repository and run the analysis with:
-
-```bash
-cd /scratch/anash19/mmp1-collagen-oi-adaptive-md
-git pull origin main
-
-python scripts/run_complete_structural_analysis.py \
-  --root . \
-  --output_dir complete_structural_analysis
-```
-
-The principal downloadable tables are:
-
-```text
-complete_structural_analysis/hydrogen_bonds_and_backbone/structural_best_frames.csv
-complete_structural_analysis/hydrogen_bonds_and_backbone/structural_generation_summary.csv
-complete_structural_analysis/hydrogen_bonds_and_backbone/structural_hydrogen_bonds.csv
-complete_structural_analysis/hydrogen_bonds_and_backbone/structural_backbone_dihedrals.csv
-complete_structural_analysis/opening_and_mmp1_context/residue_resolved_opening_geometry.csv
-complete_structural_analysis/opening_and_mmp1_context/residue_resolved_mmp1_contacts.csv
-complete_structural_analysis/opening_and_mmp1_context/structural_frame_summary.csv
-complete_structural_analysis/opening_and_mmp1_context/structural_changes_from_generation_zero.csv
-complete_structural_analysis/analysis_manifest.json
-```
-
-## Peer-review trajectory analysis
-
-`run_peer_review_trajectory_analysis_standalone.py` extends the structural analysis across existing production trajectories. It does not run new molecular dynamics. By default it samples every 200 ps from all workers at generations 0, 10, 20 and 28 and reports chain-resolved opening, hydrogen-bond sensitivity and occupancy, residue-specific dihedral statistics, unique collagen-MMP-1 residue contacts, MMP-domain contacts, catalytic-zinc coordination and scissile-region distances.
-
-When the server is not connected to GitHub, upload this one Python file into the repository root with the SOL web portal and run this single command from the repository root:
-
-```bash
-python run_peer_review_trajectory_analysis_standalone.py --root . --output_dir peer_review_trajectory_analysis
-```
-
-The script creates `peer_review_trajectory_analysis.zip` for download through the web portal. Its default 200 ps sampling interval is intended to make the full four-system analysis practical while retaining worker-level replication. Use `--frame_stride 10` for 100 ps sampling if additional temporal resolution is required.
-
-Create a compact archive containing the CSV data and reproducibility manifest, but no trajectories:
-
-```bash
-tar -czf complete_structural_analysis_csvs.tar.gz \
-  complete_structural_analysis/analysis_manifest.json \
-  complete_structural_analysis/hydrogen_bonds_and_backbone/*.csv \
-  complete_structural_analysis/opening_and_mmp1_context/*.csv
-```
-
-To create a fresh checkout on a different machine:
-
-```bash
-git clone https://github.com/acnash/mmp1-collagen-oi-adaptive-md.git
-cd mmp1-collagen-oi-adaptive-md
-```
-
-The manuscript is then available under `manuscript/`. Full structural-analysis instructions, including explicit adaptive-run directory options and analysis thresholds, are also retained in [`docs/STRUCTURAL_ANALYSIS.md`](docs/STRUCTURAL_ANALYSIS.md).
-
-## PyMOL open-state scenes
-
-`analysis/pymol_open_state_scripts/all_open_states_standalone.py` is a self-contained PyMOL script containing the wild-type, G978S, G984C and G987R generation-28 selected structures. Run it through PyMOL's **File > Run Script** command. It creates four named scenes with light-grey MMP-1, purple collagen and conventionally coloured residue sticks. The structures are continuous and no periodic or crystallographic copies are generated.
-
-## Manuscript draft
-
-The current manuscript draft is available in Markdown and PDF under [`manuscript/`](manuscript/). The draft reports the generation-matched opening, structural, hydrogen-bond, backbone-dihedral and MMP-1-contact analyses through generation 28.
+This is active research. Results and interpretations may change as the apo
+ensembles, wild-type controls and longer trajectories are completed.
