@@ -81,7 +81,7 @@ def main():
     repo = Path(__file__).resolve().parents[1]
     records = []
     for variant in VARIANTS:
-        system_dir = repo / "generated_mutants" / "mmp1_free_150mM_NaCl" / f"collagen_{variant}"
+        system_dir = repo / "systems" / "mmp1-free-apo" / f"collagen_{variant}"
         prep = json.loads((system_dir / "preparation_summary.json").read_text())
         gro = GromacsGroFile(str(system_dir / f"MMP1_free_{variant}_150mM_NaCl_start.gro"))
         top = GromacsTopFile(

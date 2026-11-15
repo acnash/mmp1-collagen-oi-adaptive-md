@@ -19,10 +19,10 @@ The modeled collagen register follows the numbering assigned to the 4AUO model c
 
 | System | Mutated chain | Collagen residue change | Input folder |
 |---|---:|---|---|
-| `wild_type` | none | none | `generated_mutants/salted_150mM_NaCl/wild_type/` |
-| `G978S` | chain 1 | `GLY978 -> SER978` | `generated_mutants/salted_150mM_NaCl/collagen_G978S/` |
-| `G984C` | chain 1 | `GLY984 -> CYS984` | `generated_mutants/salted_150mM_NaCl/collagen_G984C/` |
-| `G987R` | chain 1 | `GLY987 -> ARG987` | `generated_mutants/salted_150mM_NaCl/collagen_G987R/` |
+| `wild_type` | none | none | `systems/mmp1-bound-adaptive/wild_type/` |
+| `G978S` | chain 1 | `GLY978 -> SER978` | `systems/mmp1-bound-adaptive/collagen_G978S/` |
+| `G984C` | chain 1 | `GLY984 -> CYS984` | `systems/mmp1-bound-adaptive/collagen_G984C/` |
+| `G987R` | chain 1 | `GLY987 -> ARG987` | `systems/mmp1-bound-adaptive/collagen_G987R/` |
 
 Each system directory contains a complete local GROMACS include set:
 
@@ -69,7 +69,7 @@ The original 2 fs startup was unstable for `G978S`, so validation was repeated w
 Validated output:
 
 ```text
-generated_mutants/salted_150mM_NaCl/collagen_G978S/
+systems/mmp1-bound-adaptive/collagen_G978S/
   NPT_eq_collagen_G978S_150mM_NaCl_openmm_10ps_npt.gro
   openmm_validation/
     G978S_after_minimization.gro
@@ -90,13 +90,13 @@ G987R: failed during NVT at 0.5 fs; also failed at 10 K / 0.1 fs.
 Those systems were later rescued by a more aggressive OpenMM-only relaxation campaign followed by 10 ps NVT and 10 ps NPT at 312.5 K with a 2 fs timestep. Final velocity-bearing structures are committed for the three mutant systems:
 
 ```text
-generated_mutants/salted_150mM_NaCl/collagen_G978S/
+systems/mmp1-bound-adaptive/collagen_G978S/
   NPT_eq_collagen_G978S_150mM_NaCl_openmm_10ps_nvt_10ps_npt_with_velocities.gro
 
-generated_mutants/salted_150mM_NaCl/collagen_G984C/
+systems/mmp1-bound-adaptive/collagen_G984C/
   NPT_eq_collagen_G984C_150mM_NaCl_openmm_10ps_nvt_10ps_npt_with_velocities.gro
 
-generated_mutants/salted_150mM_NaCl/collagen_G987R/
+systems/mmp1-bound-adaptive/collagen_G987R/
   NPT_eq_collagen_G987R_150mM_NaCl_openmm_10ps_nvt_10ps_npt_with_velocities.gro
 ```
 
@@ -176,7 +176,7 @@ For the generic template, edit `SYSTEM_VARIANT`, `INPUT_DIR`, and `INPUT_GRO` to
 
 ```bash
 SYSTEM_VARIANT="wild_type"
-INPUT_DIR="generated_mutants/salted_150mM_NaCl/wild_type"
+INPUT_DIR="systems/mmp1-bound-adaptive/wild_type"
 INPUT_GRO="NPT_eq_wild_type_150mM_NaCl.gro"
 ```
 
@@ -204,10 +204,10 @@ For explicit resumed campaigns, pass the four run directories:
 
 ```bash
 python scripts/monitor_collagen_unwinding_progress.py \
-  --wild_type_run generated_mutants/salted_150mM_NaCl/wild_type/adaptive_run_wild_type_YYYYMMDD_HHMMSS \
-  --g978s_run generated_mutants/salted_150mM_NaCl/collagen_G978S/adaptive_run_G978S_YYYYMMDD_HHMMSS \
-  --g984c_run generated_mutants/salted_150mM_NaCl/collagen_G984C/adaptive_run_G984C_YYYYMMDD_HHMMSS \
-  --g987r_run generated_mutants/salted_150mM_NaCl/collagen_G987R/adaptive_run_G987R_YYYYMMDD_HHMMSS \
+  --wild_type_run systems/mmp1-bound-adaptive/wild_type/adaptive_run_wild_type_YYYYMMDD_HHMMSS \
+  --g978s_run systems/mmp1-bound-adaptive/collagen_G978S/adaptive_run_G978S_YYYYMMDD_HHMMSS \
+  --g984c_run systems/mmp1-bound-adaptive/collagen_G984C/adaptive_run_G984C_YYYYMMDD_HHMMSS \
+  --g987r_run systems/mmp1-bound-adaptive/collagen_G987R/adaptive_run_G987R_YYYYMMDD_HHMMSS \
   --analysis_dir joint_unwinding_report
 ```
 
@@ -235,10 +235,10 @@ For explicit resumed campaigns:
 
 ```bash
 python scripts/report_collagen_structural_metrics.py \
-  --wild_type_run generated_mutants/salted_150mM_NaCl/wild_type/adaptive_run_wild_type_YYYYMMDD_HHMMSS \
-  --g978s_run generated_mutants/salted_150mM_NaCl/collagen_G978S/adaptive_run_G978S_YYYYMMDD_HHMMSS \
-  --g984c_run generated_mutants/salted_150mM_NaCl/collagen_G984C/adaptive_run_G984C_YYYYMMDD_HHMMSS \
-  --g987r_run generated_mutants/salted_150mM_NaCl/collagen_G987R/adaptive_run_G987R_YYYYMMDD_HHMMSS \
+  --wild_type_run systems/mmp1-bound-adaptive/wild_type/adaptive_run_wild_type_YYYYMMDD_HHMMSS \
+  --g978s_run systems/mmp1-bound-adaptive/collagen_G978S/adaptive_run_G978S_YYYYMMDD_HHMMSS \
+  --g984c_run systems/mmp1-bound-adaptive/collagen_G984C/adaptive_run_G984C_YYYYMMDD_HHMMSS \
+  --g987r_run systems/mmp1-bound-adaptive/collagen_G987R/adaptive_run_G987R_YYYYMMDD_HHMMSS \
   --analysis_dir joint_structural_report
 ```
 

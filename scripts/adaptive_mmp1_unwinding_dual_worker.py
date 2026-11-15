@@ -19,7 +19,7 @@ It also retains the dual-worker scheduler corrections:
 
 Typical fresh command:
   conda run -n openmm python scripts/adaptive_mmp1_unwinding_dual_worker.py \
-    --input_dir generated_mutants/salted_150mM_NaCl/collagen_G978S \
+    --input_dir systems/mmp1-bound-adaptive/collagen_G978S \
     --system_variant G978S \
     --input_gro NPT_eq_collagen_G978S_150mM_NaCl.gro \
     --platform CUDA \
@@ -29,7 +29,7 @@ Typical fresh command:
 
 Typical resume command:
   conda run -n openmm python scripts/adaptive_mmp1_unwinding_dual_worker.py \
-    --resume generated_mutants/salted_150mM_NaCl/collagen_G978S/adaptive_run_G978S_YYYYMMDD_HHMMSS \
+    --resume systems/mmp1-bound-adaptive/collagen_G978S/adaptive_run_G978S_YYYYMMDD_HHMMSS \
     --platform CUDA \
     --concurrent_workers 4 \
     --mode auto \

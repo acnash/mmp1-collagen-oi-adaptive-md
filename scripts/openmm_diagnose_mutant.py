@@ -49,7 +49,7 @@ def main() -> None:
     args = parser.parse_args()
 
     folder, gro_name = SYSTEMS[args.variant]
-    system_dir = args.repo_root / "generated_mutants" / "salted_150mM_NaCl" / folder
+    system_dir = args.repo_root / "systems" / "mmp1-bound-adaptive" / folder
     gro = GromacsGroFile(str(system_dir / gro_name))
     top = GromacsTopFile(
         str(system_dir / "system.top"),

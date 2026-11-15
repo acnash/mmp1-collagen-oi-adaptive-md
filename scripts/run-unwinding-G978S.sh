@@ -19,7 +19,7 @@ source activate openmm
 cd /scratch/anash19/mmp1-collagen-oi-adaptive-md
 
 python scripts/adaptive_mmp1_unwinding_dual_worker.py \
-    --input_dir generated_mutants/salted_150mM_NaCl/collagen_G978S \
+    --input_dir systems/mmp1-bound-adaptive/collagen_G978S \
     --system_variant G978S \
     --input_gro NPT_eq_collagen_G978S_150mM_NaCl_openmm_10ps_nvt_10ps_npt_with_velocities.gro \
     --input_top system.top \

@@ -46,22 +46,22 @@ except Exception as exc:  # pragma: no cover - server dependency check
 SYSTEMS = {
     "wild_type": {
         "label": "Wild type",
-        "relative_dir": Path("generated_mutants/salted_150mM_NaCl/wild_type"),
+        "relative_dir": Path("systems/mmp1-bound-adaptive/wild_type"),
         "run_prefix": "adaptive_run_wild_type_",
     },
     "G978S": {
         "label": "G978S",
-        "relative_dir": Path("generated_mutants/salted_150mM_NaCl/collagen_G978S"),
+        "relative_dir": Path("systems/mmp1-bound-adaptive/collagen_G978S"),
         "run_prefix": "adaptive_run_G978S_",
     },
     "G984C": {
         "label": "G984C",
-        "relative_dir": Path("generated_mutants/salted_150mM_NaCl/collagen_G984C"),
+        "relative_dir": Path("systems/mmp1-bound-adaptive/collagen_G984C"),
         "run_prefix": "adaptive_run_G984C_",
     },
     "G987R": {
         "label": "G987R",
-        "relative_dir": Path("generated_mutants/salted_150mM_NaCl/collagen_G987R"),
+        "relative_dir": Path("systems/mmp1-bound-adaptive/collagen_G987R"),
         "run_prefix": "adaptive_run_G987R_",
     },
 }

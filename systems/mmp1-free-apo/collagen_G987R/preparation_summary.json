@@ -1,7 +1,7 @@
 {
   "variant": "G987R",
-  "source_gro": "C:\\Users\\Anthony\\OneDrive\\Documents\\ChatGPT\\MMP-1 Unwinding\\generated_mutants\\salted_150mM_NaCl\\collagen_G987R\\NPT_eq_collagen_G987R_150mM_NaCl.gro",
-  "output_gro": "C:\\Users\\Anthony\\OneDrive\\Documents\\ChatGPT\\MMP-1 Unwinding\\generated_mutants\\mmp1_free_150mM_NaCl\\collagen_G987R\\MMP1_free_G987R_150mM_NaCl_start.gro",
+  "source_gro": "systems/mmp1-bound-adaptive/collagen_G987R/NPT_eq_collagen_G987R_150mM_NaCl.gro",
+  "output_gro": "systems/mmp1-free-apo/collagen_G987R/MMP1_free_G987R_150mM_NaCl_start.gro",
   "mmp1_atoms_removed": 5825,
   "collagen_atoms": 1346,
   "collagen_charge_e": 7,

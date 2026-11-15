@@ -101,7 +101,7 @@ def build_system(system_dir: Path, gro_name: str):
 
 def run_one(repo_root: Path, variant: str, threads: int, nvt_ps: float, npt_ps: float, timestep_ps: float, temperature_k: float) -> dict:
     folder, gro_name = MUTANT_SYSTEMS[variant]
-    system_dir = repo_root / "generated_mutants" / "salted_150mM_NaCl" / folder
+    system_dir = repo_root / "systems" / "mmp1-bound-adaptive" / folder
     validation_dir = system_dir / "openmm_validation"
     validation_dir.mkdir(exist_ok=True)
 

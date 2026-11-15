@@ -362,7 +362,7 @@ def build_job(variant: str, replica: int):
     input_dir.mkdir(parents=True)
     output_dir.mkdir()
 
-    source_system = REPO / "generated_mutants" / "mmp1_free_150mM_NaCl" / f"collagen_{variant}"
+    source_system = REPO / "systems" / "mmp1-free-apo" / f"collagen_{variant}"
     for filename in (
         "system.top", "forcefield.itp", "ffbonded.itp", "ffnonbonded.itp",
         "collagen.itp", f"collagen_{variant}.itp", "tip3p.itp", "ions.itp",

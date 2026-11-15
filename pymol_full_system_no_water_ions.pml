@@ -2,10 +2,10 @@ python
 from pymol import cmd
 
 models = [
-    ("WT", "/Users/anthony/Documents/MMP1 OI/generated_mutants/salted_150mM_NaCl/wild_type/NPT_eq_wild_type_150mM_NaCl.gro"),
-    ("G978S", "/Users/anthony/Documents/MMP1 OI/generated_mutants/salted_150mM_NaCl/collagen_G978S/NPT_eq_collagen_G978S_150mM_NaCl.gro"),
-    ("G984C", "/Users/anthony/Documents/MMP1 OI/generated_mutants/salted_150mM_NaCl/collagen_G984C/NPT_eq_collagen_G984C_150mM_NaCl.gro"),
-    ("G987R", "/Users/anthony/Documents/MMP1 OI/generated_mutants/salted_150mM_NaCl/collagen_G987R/NPT_eq_collagen_G987R_150mM_NaCl.gro"),
+    ("WT", "/Users/anthony/Documents/MMP1 OI/systems/mmp1-bound-adaptive/wild_type/NPT_eq_wild_type_150mM_NaCl.gro"),
+    ("G978S", "/Users/anthony/Documents/MMP1 OI/systems/mmp1-bound-adaptive/collagen_G978S/NPT_eq_collagen_G978S_150mM_NaCl.gro"),
+    ("G984C", "/Users/anthony/Documents/MMP1 OI/systems/mmp1-bound-adaptive/collagen_G984C/NPT_eq_collagen_G984C_150mM_NaCl.gro"),
+    ("G987R", "/Users/anthony/Documents/MMP1 OI/systems/mmp1-bound-adaptive/collagen_G987R/NPT_eq_collagen_G987R_150mM_NaCl.gro"),
 ]
 
 cmd.reinitialize()

@@ -198,7 +198,7 @@ def run_steps_checked(simulation, steps, chunk_steps):
 
 def run_attempt(repo_root, variant, replica, timestep_ps, args, attempt_dir):
     folder = SYSTEMS[variant]
-    system_dir = repo_root / "generated_mutants" / "mmp1_free_150mM_NaCl" / folder
+    system_dir = repo_root / "systems" / "mmp1-free-apo" / folder
     input_gro = system_dir / f"MMP1_free_{variant}_150mM_NaCl_start.gro"
     gro = GromacsGroFile(str(input_gro))
     top_probe = GromacsTopFile(

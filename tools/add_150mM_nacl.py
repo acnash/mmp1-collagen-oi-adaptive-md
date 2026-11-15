@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path("/Users/anthony/Documents/MMP1 OI")
 SRC = Path("/Users/anthony/Downloads")
 MUT = ROOT / "generated_mutants"
-OUT = MUT / "salted_150mM_NaCl"
+OUT = ROOT / "systems" / "mmp1-bound-adaptive"
 
 AVOGADRO_PER_NM3_MOLAR = 0.602214076
 TARGET_MOLAR = 0.150

@@ -19,7 +19,7 @@ source activate openmm
 cd /scratch/anash19/mmp1-collagen-oi-adaptive-md
 
 python scripts/adaptive_mmp1_unwinding_dual_worker.py \
-    --input_dir generated_mutants/salted_150mM_NaCl/wild_type \
+    --input_dir systems/mmp1-bound-adaptive/wild_type \
     --system_variant wild_type \
     --input_gro NPT_eq_wild_type_150mM_NaCl.gro \
     --input_top system.top \

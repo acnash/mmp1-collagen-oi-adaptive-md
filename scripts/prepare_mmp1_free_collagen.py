@@ -167,8 +167,8 @@ def write_topology(path, mutant_molecule, n_waters, n_na, n_cl):
 
 def prepare_variant(repo_root, variant, seed):
     folder, gro_name, mutant_molecule = SYSTEMS[variant]
-    source_dir = repo_root / "generated_mutants" / "salted_150mM_NaCl" / folder
-    output_dir = repo_root / "generated_mutants" / "mmp1_free_150mM_NaCl" / folder
+    source_dir = repo_root / "systems" / "mmp1-bound-adaptive" / folder
+    output_dir = repo_root / "systems" / "mmp1-free-apo" / folder
     output_dir.mkdir(parents=True, exist_ok=True)
 
     gro = GromacsGroFile(str(source_dir / gro_name))

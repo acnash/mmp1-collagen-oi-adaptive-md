@@ -77,7 +77,7 @@ def run_replica(repo, variant, replica, args):
     initial_state_path = equil_dir / "06_npt_unrestrained_state.xml"
     initial_state = XmlSerializer.deserialize(initial_state_path.read_text())
 
-    system_dir = repo / "generated_mutants" / "mmp1_free_150mM_NaCl" / f"collagen_{variant}"
+    system_dir = repo / "systems" / "mmp1-free-apo" / f"collagen_{variant}"
     gro = GromacsGroFile(str(system_dir / f"MMP1_free_{variant}_150mM_NaCl_start.gro"))
     top = GromacsTopFile(
         str(system_dir / "system.top"), periodicBoxVectors=gro.getPeriodicBoxVectors(), includeDir=str(system_dir)

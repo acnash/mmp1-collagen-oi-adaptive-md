@@ -113,7 +113,7 @@ def write_failure(output_dir: Path, variant: str, stage: str, exc: Exception, su
 
 def run_variant(repo_root: Path, variant: str, threads: int, timestep_ps: float, temperature_k: float, nvt_ps: float, npt_ps: float, constraints: str) -> dict:
     folder, gro_name = SYSTEMS[variant]
-    system_dir = repo_root / "generated_mutants" / "salted_150mM_NaCl" / folder
+    system_dir = repo_root / "systems" / "mmp1-bound-adaptive" / folder
     output_dir = system_dir / "openmm_final_10ps_10ps_with_velocities"
     output_dir.mkdir(exist_ok=True)
     steps_nvt = int(round(nvt_ps / timestep_ps))

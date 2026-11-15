@@ -28,6 +28,7 @@ to infer spontaneous opening rates, cleavage kinetics or clinical causality.
 
 ## Resources
 
+- [Prepared MMP-1-bound structures and force-field inputs](../../systems/mmp1-bound-adaptive/)
 - [Detailed adaptive workflow](../../docs/ADAPTIVE_WORKFLOW_REFERENCE.md)
 - [Structural-analysis methods](../../docs/STRUCTURAL_ANALYSIS.md)
 - [Working manuscript](../../manuscript/MMP1_collagen_OI_adaptive_unwinding_manuscript.md)

@@ -38,7 +38,7 @@ causal mechanism for OI pathology.
 
 ## Reproducibility resources
 
-- [Prepared MMP-1-free structures and force-field inputs](../../generated_mutants/mmp1_free_150mM_NaCl/)
+- [Prepared MMP-1-free structures and force-field inputs](../../systems/mmp1-free-apo/)
 - [Self-contained nine-job Sol production bundle](../../MMP1_apo_Sol_1us_200ps/)
 - [Prepare the MMP-1-free systems](../../scripts/prepare_mmp1_free_collagen.py)
 - [Run staged equilibration](../../scripts/run_mmp1_free_collagen_equilibration.py)

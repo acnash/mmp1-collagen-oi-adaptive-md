@@ -45,10 +45,10 @@ If the latest directory is not the desired campaign, specify all four runs:
 ```bash
 python scripts/run_complete_structural_analysis.py \
   --root . \
-  --wild_type_run generated_mutants/salted_150mM_NaCl/wild_type/adaptive_run_wild_type_YYYYMMDD_HHMMSS \
-  --g978s_run generated_mutants/salted_150mM_NaCl/collagen_G978S/adaptive_run_G978S_YYYYMMDD_HHMMSS \
-  --g984c_run generated_mutants/salted_150mM_NaCl/collagen_G984C/adaptive_run_G984C_YYYYMMDD_HHMMSS \
-  --g987r_run generated_mutants/salted_150mM_NaCl/collagen_G987R/adaptive_run_G987R_YYYYMMDD_HHMMSS \
+  --wild_type_run systems/mmp1-bound-adaptive/wild_type/adaptive_run_wild_type_YYYYMMDD_HHMMSS \
+  --g978s_run systems/mmp1-bound-adaptive/collagen_G978S/adaptive_run_G978S_YYYYMMDD_HHMMSS \
+  --g984c_run systems/mmp1-bound-adaptive/collagen_G984C/adaptive_run_G984C_YYYYMMDD_HHMMSS \
+  --g987r_run systems/mmp1-bound-adaptive/collagen_G987R/adaptive_run_G987R_YYYYMMDD_HHMMSS \
   --output_dir complete_structural_analysis
 ```
 

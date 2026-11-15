@@ -15,20 +15,20 @@ set -euo pipefail
 
 # Template launcher. Edit SYSTEM_VARIANT, INPUT_DIR, and INPUT_GRO together.
 SYSTEM_VARIANT="wild_type"
-INPUT_DIR="generated_mutants/salted_150mM_NaCl/wild_type"
+INPUT_DIR="systems/mmp1-bound-adaptive/wild_type"
 INPUT_GRO="NPT_eq_wild_type_150mM_NaCl.gro"
 
 # Other system options:
 # SYSTEM_VARIANT="G978S"
-# INPUT_DIR="generated_mutants/salted_150mM_NaCl/collagen_G978S"
+# INPUT_DIR="systems/mmp1-bound-adaptive/collagen_G978S"
 # INPUT_GRO="NPT_eq_collagen_G978S_150mM_NaCl_openmm_10ps_nvt_10ps_npt_with_velocities.gro"
 #
 # SYSTEM_VARIANT="G984C"
-# INPUT_DIR="generated_mutants/salted_150mM_NaCl/collagen_G984C"
+# INPUT_DIR="systems/mmp1-bound-adaptive/collagen_G984C"
 # INPUT_GRO="NPT_eq_collagen_G984C_150mM_NaCl_openmm_10ps_nvt_10ps_npt_with_velocities.gro"
 #
 # SYSTEM_VARIANT="G987R"
-# INPUT_DIR="generated_mutants/salted_150mM_NaCl/collagen_G987R"
+# INPUT_DIR="systems/mmp1-bound-adaptive/collagen_G987R"
 # INPUT_GRO="NPT_eq_collagen_G987R_150mM_NaCl_openmm_10ps_nvt_10ps_npt_with_velocities.gro"
 
 module load mamba
