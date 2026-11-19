@@ -1,0 +1,10 @@
+mutant,metric_a,metric_b,pearson_r,spearman_rho
+G978S,catalytic_hpx_com_nm,ser123_ser347_ca_nm,0.48721357944237315,0.535483870967742
+G978S,catalytic_hpx_com_nm,catalytic_opening_n171_t230_ca_nm,0.2477862397220545,0.21245828698553948
+G978S,ser123_ser347_ca_nm,catalytic_opening_n171_t230_ca_nm,0.24187669735007356,0.2582869855394883
+G984C,catalytic_hpx_com_nm,ser123_ser347_ca_nm,0.6859700408623834,0.6120133481646273
+G984C,catalytic_hpx_com_nm,catalytic_opening_n171_t230_ca_nm,0.3476788983517881,0.37085650723025576
+G984C,ser123_ser347_ca_nm,catalytic_opening_n171_t230_ca_nm,0.23797260058878292,0.21201334816462733
+G987R,catalytic_hpx_com_nm,ser123_ser347_ca_nm,0.7371653849575506,0.796662958843159
+G987R,catalytic_hpx_com_nm,catalytic_opening_n171_t230_ca_nm,-0.5355887610800792,-0.6458286985539488
+G987R,ser123_ser347_ca_nm,catalytic_opening_n171_t230_ca_nm,-0.2949099590797785,-0.3993325917686318

@@ -1,0 +1,18 @@
+Quality-control notes
+- catalytic_hpx_com_nm: G984C generation 6 has 911 frames, expected 1000
+- ser123_ser347_ca_nm: G984C generation 6 has 911 frames, expected 1000
+- catalytic_opening_n171_t230_ca_nm: G984C generation 6 has 911 frames, expected 1000
+- Manifest created: 2026-11-13T11:50:48.515912+00:00
+- Repository commit: 4938facd4312ce5c4528245f1ca035937697a9f0
+- Frame stride: 20
+
+Generation-level effects
+- Catalytic–HPX centre-of-mass distance; G987R: mean +0.163 Å, block-bootstrap 95% CI [-0.182, +0.479], positive in 63.3% of generations, first five +0.364 Å, last five -0.389 Å.
+- Catalytic–HPX centre-of-mass distance; G978S: mean +0.489 Å, block-bootstrap 95% CI [+0.348, +0.647], positive in 93.3% of generations, first five +0.525 Å, last five +0.844 Å.
+- Catalytic–HPX centre-of-mass distance; G984C: mean +0.914 Å, block-bootstrap 95% CI [+0.756, +1.055], positive in 100.0% of generations, first five +0.436 Å, last five +1.245 Å.
+- N171–T230 catalytic-opening distance; G978S: mean -0.404 Å, block-bootstrap 95% CI [-0.656, -0.124], positive in 16.7% of generations, first five +0.312 Å, last five -0.330 Å.
+- N171–T230 catalytic-opening distance; G987R: mean +0.370 Å, block-bootstrap 95% CI [+0.024, +0.692], positive in 76.7% of generations, first five +0.190 Å, last five +0.646 Å.
+- N171–T230 catalytic-opening distance; G984C: mean +0.436 Å, block-bootstrap 95% CI [+0.206, +0.685], positive in 90.0% of generations, first five +0.050 Å, last five +0.214 Å.
+- SER123–SER347 Cα distance; G987R: mean -0.681 Å, block-bootstrap 95% CI [-1.444, +0.063], positive in 50.0% of generations, first five +0.111 Å, last five -2.171 Å.
+- SER123–SER347 Cα distance; G978S: mean +1.437 Å, block-bootstrap 95% CI [+0.617, +2.367], positive in 86.7% of generations, first five +0.477 Å, last five +2.465 Å.
+- SER123–SER347 Cα distance; G984C: mean +3.256 Å, block-bootstrap 95% CI [+2.314, +4.236], positive in 100.0% of generations, first five +0.995 Å, last five +4.206 Å.

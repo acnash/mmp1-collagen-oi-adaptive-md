@@ -15,7 +15,8 @@ import pandas as pd
 
 SYSTEM_ORDER = ["wild_type", "G978S", "G984C", "G987R"]
 LABELS = {"wild_type": "Wild type", "G978S": "G978S", "G984C": "G984C", "G987R": "G987R"}
-COLORS = {"wild_type": "#4D4D4D", "G978S": "#2878B5", "G984C": "#D05A2A", "G987R": "#7A4EA3"}
+# Manuscript-wide system palette, established in Figure 3.
+COLORS = {"wild_type": "#303030", "G978S": "#2574A9", "G984C": "#2E8B57", "G987R": "#C0392B"}
 ENDPOINT = 28
 
 
