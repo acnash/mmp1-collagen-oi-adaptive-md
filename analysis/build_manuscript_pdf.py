@@ -119,6 +119,18 @@ def styles() -> dict[str, ParagraphStyle]:
             fontSize=9.5,
             leading=12.1,
             alignment=TA_JUSTIFY,
+            firstLineIndent=5 * mm,
+            spaceAfter=0.7 * mm,
+            allowWidows=0,
+            allowOrphans=0,
+        ),
+        "body_flush": ParagraphStyle(
+            "BodyFlush",
+            parent=base["BodyText"],
+            fontName="TimesNR",
+            fontSize=9.5,
+            leading=12.1,
+            alignment=TA_JUSTIFY,
             spaceAfter=2.4 * mm,
             allowWidows=0,
             allowOrphans=0,
@@ -169,11 +181,15 @@ def figure_flowables(markdown_line: str, source_dir: Path) -> list:
     elif path.name == "figure_residue_resolved_structural_changes.png":
         max_width = 170 * mm
         max_height = 130 * mm
+    elif path.name == "figure_mmp1_conformational_reorganisation.png":
+        max_width = 170 * mm
+        max_height = 147 * mm
     scale = min(max_width / image.imageWidth, max_height / image.imageHeight)
     image.drawWidth = image.imageWidth * scale
     image.drawHeight = image.imageHeight * scale
     image.hAlign = "CENTER"
-    return [Spacer(1, 2 * mm), image]
+    space_before = 0 if path.name == "figure_mmp1_conformational_reorganisation.png" else 2 * mm
+    return [Spacer(1, space_before), image]
 
 
 def parse_table(lines: list[str], index: int, style_map: dict[str, ParagraphStyle]) -> tuple[Table, int]:
@@ -188,7 +204,10 @@ def parse_table(lines: list[str], index: int, style_map: dict[str, ParagraphStyl
         style = style_map["table_header"] if row_index == 0 else style_map["table"]
         formatted.append([Paragraph(inline_markup(cell), style) for cell in row])
     available = 170 * mm
-    widths = [available * value for value in [0.18, 0.15, 0.15, 0.14, 0.18, 0.20]]
+    if len(formatted[0]) == 4 and "Catalytic-HPX" in rows[0][1]:
+        widths = [available * value for value in [0.16, 0.32, 0.26, 0.26]]
+    else:
+        widths = [available * value for value in [0.18, 0.15, 0.15, 0.14, 0.18, 0.20]]
     table = Table(
         formatted,
         colWidths=widths[: len(formatted[0])],
@@ -221,7 +240,7 @@ def footer(canvas, document) -> None:
     canvas.saveState()
     canvas.setFont("TimesNR", 8)
     canvas.setFillColor(colors.HexColor("#555555"))
-    canvas.drawString(20 * mm, 12 * mm, "OI-associated collagen packing fragility")
+    canvas.drawString(20 * mm, 12 * mm, "OI-associated collagen packing vulnerability")
     canvas.drawRightString(A4[0] - 20 * mm, 12 * mm, str(document.page))
     canvas.restoreState()
 
@@ -232,6 +251,7 @@ def build() -> None:
     lines = SOURCE.read_text(encoding="utf-8").splitlines()
     story: list = []
     index = 0
+    indent_body = False
     while index < len(lines):
         line = lines[index].strip()
         if not line:
@@ -242,6 +262,7 @@ def build() -> None:
         elif line.startswith("## "):
             heading = line[3:]
             story.append(Paragraph(inline_markup(heading), style_map["h1"]))
+            indent_body = heading not in {"Abstract", "References"}
         elif line.startswith("### "):
             story.append(Paragraph(inline_markup(line[4:]), style_map["h2"]))
         elif line.startswith("!["):
@@ -266,7 +287,8 @@ def build() -> None:
             else:
                 story.append(Paragraph(f"<i>{inline_markup(content)}</i>", style_map["subtitle"]))
         else:
-            story.append(Paragraph(inline_markup(line), style_map["body"]))
+            body_style = style_map["body"] if indent_body else style_map["body_flush"]
+            story.append(Paragraph(inline_markup(line), body_style))
         index += 1
 
     document = SimpleDocTemplate(
@@ -276,7 +298,7 @@ def build() -> None:
         leftMargin=20 * mm,
         topMargin=18 * mm,
         bottomMargin=19 * mm,
-        title="Osteogenesis imperfecta-associated glycine substitutions encode mutation-dependent local triple-helix fragility in MMP-1-bound model collagen",
+        title="Osteogenesis imperfecta-associated glycine substitutions encode local triple-helix packing vulnerability relevant to MMP-1-mediated matrix remodelling",
         author="Anthony Nash; Chase Harms; Susanta K Sarkar",
         subject="Adaptive atomistic molecular dynamics manuscript",
     )
