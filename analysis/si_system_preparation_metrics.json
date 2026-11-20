@@ -1,0 +1,104 @@
+{
+  "local_cluster_minimisation": {
+    "G978S": {
+      "initial_recorded_energy": 362052849.799,
+      "final_recorded_energy": 460.304,
+      "iterations": 100
+    },
+    "G984C": {
+      "initial_recorded_energy": 163413748.712,
+      "final_recorded_energy": 680.68,
+      "iterations": 100
+    },
+    "G987R": {
+      "initial_recorded_energy": 49514.025,
+      "final_recorded_energy": 650.807,
+      "iterations": 100
+    }
+  },
+  "G978S_validation": {
+    "nvt_temperature_mean_k": 297.82400689990294,
+    "nvt_temperature_final_k": 310.0123803031706,
+    "npt_temperature_mean_k": 311.6753868629672,
+    "npt_volume_mean_nm3": 639.8232826032194,
+    "npt_density_mean_g_ml": 1.021298459855658,
+    "minimized_potential_kj_mol": -1042060.4800593024,
+    "post_nvt_potential_kj_mol": -842443.9502906519,
+    "post_npt_potential_kj_mol": -838920.6479157862
+  },
+  "initial_to_final_structural_metrics": {
+    "G978S": {
+      "MMP-1_ca_rmsd_angstrom": 0.9870488622594039,
+      "collagen_chain_mean_ca_rmsd_angstrom": 1.0132896146466939,
+      "collagen_977-987_chain_mean_ca_rmsd_angstrom": 0.4091737997234058,
+      "collagen_977-987_distance_rmsd_angstrom": 0.3619172353202103,
+      "initial_box_volume_nm3": 636.071477353899,
+      "final_box_volume_nm3": 640.2691470261368
+    },
+    "G984C": {
+      "MMP-1_ca_rmsd_angstrom": 0.9191854178868724,
+      "collagen_chain_mean_ca_rmsd_angstrom": 1.039029034624198,
+      "collagen_977-987_chain_mean_ca_rmsd_angstrom": 0.4702086784143881,
+      "collagen_977-987_distance_rmsd_angstrom": 0.31479187512007045,
+      "initial_box_volume_nm3": 636.071477353899,
+      "final_box_volume_nm3": 641.0002268591539
+    },
+    "G987R": {
+      "MMP-1_ca_rmsd_angstrom": 0.833787906368364,
+      "collagen_chain_mean_ca_rmsd_angstrom": 0.7986436593052865,
+      "collagen_977-987_chain_mean_ca_rmsd_angstrom": 0.444711711511935,
+      "collagen_977-987_distance_rmsd_angstrom": 0.33597474048630654,
+      "initial_box_volume_nm3": 636.071477353899,
+      "final_box_volume_nm3": 640.211746675032
+    }
+  },
+  "G978S_stage_structural_metrics": {
+    "After minimisation": {
+      "MMP-1_ca_rmsd_angstrom": 0.22212288054645107,
+      "collagen_chain_mean_ca_rmsd_angstrom": 0.23071126669012584,
+      "collagen_977-987_chain_mean_ca_rmsd_angstrom": 0.20350239357078906,
+      "collagen_977-987_distance_rmsd_angstrom": 0.17407681910770662,
+      "initial_box_volume_nm3": 636.071477353899,
+      "final_box_volume_nm3": 636.071477353899
+    },
+    "After 10 ps NVT": {
+      "MMP-1_ca_rmsd_angstrom": 0.6703806886598074,
+      "collagen_chain_mean_ca_rmsd_angstrom": 0.7349210128698003,
+      "collagen_977-987_chain_mean_ca_rmsd_angstrom": 0.4289154203879952,
+      "collagen_977-987_distance_rmsd_angstrom": 0.29481212423938075,
+      "initial_box_volume_nm3": 636.071477353899,
+      "final_box_volume_nm3": 636.071477353899
+    },
+    "After 10 ps NPT": {
+      "MMP-1_ca_rmsd_angstrom": 0.7381381398326615,
+      "collagen_chain_mean_ca_rmsd_angstrom": 0.7717032146825118,
+      "collagen_977-987_chain_mean_ca_rmsd_angstrom": 0.47248755553533467,
+      "collagen_977-987_distance_rmsd_angstrom": 0.3720634823303447,
+      "initial_box_volume_nm3": 636.071477353899,
+      "final_box_volume_nm3": 640.3592856398653
+    }
+  },
+  "final_openmm_states": {
+    "G978S": {
+      "potential_energy_kj_mol": -840270.2753800625,
+      "kinetic_energy_kj_mol": 170809.85345593927,
+      "box_volume_nm3": 640.2693616254779,
+      "time_ps": 10.000000000000009,
+      "step_count": 5000
+    },
+    "G984C": {
+      "potential_energy_kj_mol": -838011.0340309917,
+      "kinetic_energy_kj_mol": 169452.48961774074,
+      "box_volume_nm3": 641.0004205105315,
+      "time_ps": 10.000000000000009,
+      "step_count": 5000
+    },
+    "G987R": {
+      "potential_energy_kj_mol": -840025.3728558063,
+      "kinetic_energy_kj_mol": 171332.54062070418,
+      "box_volume_nm3": 640.2114558781892,
+      "time_ps": 10.000000000000009,
+      "step_count": 5000
+    }
+  }
+}
